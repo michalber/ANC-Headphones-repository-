@@ -4,25 +4,9 @@
 
 //-----------------------------------------------------------------------------------------------
 #include <sigpack.h>
+#include "config.h"
 //-----------------------------------------------------------------------------------------------
-#ifndef DEBUG
-#define DEBUG 0
-#endif // DEBUG
 
-#ifndef TIME_DEBUG
-	#define TIME_DEBUG 0
-#if TIME_DEBUG
-	#include <chrono>
-#endif
-#endif // TIME_DEBUG
-
-#ifndef PLOT_DATA
-	#define PLOT_DATA 1
-#endif
-
-#ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (2048)
-#endif //FRAMES_PER_BUFFER
 //-----------------------------------------------------------------------------------------------
 namespace Adaptive {
 

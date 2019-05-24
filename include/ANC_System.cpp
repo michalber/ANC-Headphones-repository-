@@ -1,4 +1,4 @@
-#include "ANC_System.h"
+#include "../ANC-Headphones-repository-/ANC_System.h"
 
 namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
@@ -18,13 +18,13 @@ namespace ANC {
 		ErrorInputBuffer.RingBuffer_SetSize(FRAMES_PER_BUFFER);
 		MusicOutputBuffer.RingBuffer_SetSize(FRAMES_PER_BUFFER);
 
-		Music.openFile("Taco.raw");
+		Music.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco.raw");
 		Music.setUpBuffer(&MusicOutputBuffer);
 
-		Noise.openFile("NoiseT.raw");
+		Noise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\NoiseT.raw");
 		Noise.setUpBuffer(&NoiseInputBuffer);
 
-		MusicNoise.openFile("Taco+n.raw");
+		MusicNoise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco+n.raw");
 		MusicNoise.setUpBuffer(&ErrorInputBuffer);
 
 		AudioOutput.setUpBuffer(&MusicOutputBuffer, &newMusicSampleAvailable);
@@ -32,7 +32,7 @@ namespace ANC {
 		//RLMS_Algorithm.setLambda(Lambda);
 		//RLMS_Algorithm.setNumOfTaps(M);
 
-		updateInputBuffers_Func = std::bind(&ANC_System::updateInputBuffers, this);
+		/*updateInputBuffers_Func = std::bind(&ANC_System::updateInputBuffers, this);
 		updateInputBuffers_Thread = Wrapper::ThreadWrapper(updateInputBuffers_Func);		
 
 		processDataWithRLMS_Func = std::bind(&ANC_System::processDataWithRLMS, this);
@@ -41,8 +41,15 @@ namespace ANC {
 		updateOutputBuffer_Func = std::bind(&ANC_System::updateOutputBuffer, this);
 		updateOutputBuffer_Thread = Wrapper::ThreadWrapper(updateOutputBuffer_Func);
 
+#if PLOT_DATA
 		drawNLMSData_Func = std::bind(&ANC_System::drawNLMSData, this);
 		drawNLMSData_Thread = Wrapper::ThreadWrapper(drawNLMSData_Func);
+#endif
+		loadNewNoiseVector_Func = std::bind(&ANC_System::loadNewNoiseVector, this);
+		loadNewNoiseVector_Thread = Wrapper::ThreadWrapper(loadNewNoiseVector_Func);
+
+		loadNewErrorVector_Func = std::bind(&ANC_System::loadNewErrorVector, this);
+		loadNewErrorVector_Thread = Wrapper::ThreadWrapper(loadNewErrorVector_Func);*/
 
 	/*	updateInputBuffers_Thread .detach();   
 		processDataWithRLMS_Thread.detach();
@@ -62,6 +69,14 @@ namespace ANC {
 #endif // DEBUG
 			}
 		}
+
+
+		updateInputBuffers();
+		//loadNewNoiseVector();
+		//loadNewErrorVector();
+		//processDataWithRLMS();
+		updateOutputBuffer();
+		drawNLMSData();	
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
@@ -114,25 +129,34 @@ namespace ANC {
 		@retval
 	*/
 	void ANC_System::updateInputBuffers()
-	{		
-		//std::thread t([&] {
-			auto period = std::chrono::milliseconds(5);
+	{
+		//Initialize the chrono timepoint & duration objects we'll be
+		//using over & over inside our sleep loop
+		std::chrono::system_clock::time_point currentStartTime{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point nextStartTime{ currentStartTime };
 
-			while (!StopThreads) {
-				//std::this_thread::sleep_for(period);
+		std::chrono::system_clock::duration wakeupError;
+		std::thread t([&] {
+		while (!StopThreads) {			
+			nextStartTime = currentStartTime + std::chrono::milliseconds(1);
+			std::this_thread::sleep_until(nextStartTime);
 
-				if (!NoiseInputBuffer.RingBuffer_IsFull()) {
-					Noise.updateBuffer();
-					newErrorSampleAvailable.store(1);
-					//d = ErrorInputBuffer.RingBuffer_GetBufferAsVec();
-				}
-				if (!ErrorInputBuffer.RingBuffer_IsFull()) {
-					MusicNoise.updateBuffer();
-					//newNoiseSampleAvailable.store(1);
-					//x = NoiseInputBuffer.RingBuffer_GetBufferAsVec();
-				}
+			if (!NoiseInputBuffer.RingBuffer_IsFull()) {
+				Noise.updateBuffer();
+				newErrorSampleAvailable.store(true);				
+				//auto start = std::chrono::system_clock::now();
+				//x = NoiseInputBuffer.RingBuffer_GetBufferAsVec();
+				//auto stop = std::chrono::system_clock::now();
+				//cout << std::chrono::duration_cast<std::chrono::microseconds>(stop-start).count() << endl;
 			}
-		//});
+			if (!ErrorInputBuffer.RingBuffer_IsFull()) {
+				MusicNoise.updateBuffer();
+				newNoiseSampleAvailable.store(true);				
+				//d = ErrorInputBuffer.RingBuffer_GetBufferAsVec();					
+			}
+		}
+		});
+		t.detach();
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
@@ -144,34 +168,40 @@ namespace ANC {
 	*/
 	void ANC_System::processDataWithRLMS()
 	{
-		//std::thread t([&] {
-			auto period = std::chrono::milliseconds(5);
+		std::chrono::system_clock::time_point currentStartTime{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point nextStartTime{ currentStartTime };
+		std::chrono::system_clock::duration wakeupError;
 
-			while (!StopThreads) {
-				//std::this_thread::sleep_for(period);
+		std::thread t([&] {
+		while (!StopThreads) {
+			nextStartTime = currentStartTime + std::chrono::milliseconds(1);
+			std::this_thread::sleep_until(nextStartTime);
 
-				if (NoiseInputBuffer.RingBuffer_IsFull() &&
-					ErrorInputBuffer.RingBuffer_IsFull())
-				{
-					/*NLMS_Algorithm.updateNLMS(NoiseInputBuffer.RingBuffer_GetBufferAsVec(),
-											  ErrorInputBuffer.RingBuffer_GetBufferAsVec());*/	
-					//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
-					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);									
+			if (newNoiseVectorAvailable.load() == true &&
+				newErrorVectorAvailable.load() == true)
+			{
+				/*NLMS_Algorithm.updateNLMS(NoiseInputBuffer.RingBuffer_GetBufferAsVec(),
+										  ErrorInputBuffer.RingBuffer_GetBufferAsVec());*/
+										  //x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+										  //d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);									
+
+				//NLMS_Algorithm.updateNLMS(x, d);
 
 
-					//NLMS_Algorithm.updateNLMS(x,d);
-												
+				newNoiseVectorAvailable.store(false);
+				newErrorVectorAvailable.store(false);
 
-					/*if (MusicOutputBuffer.RingBuffer_IsEmpty()) {
-						MusicOutputBuffer.RingBuffer_PutVecIntoBuffer(NLMS_Algorithm.getErrorVec());
-					}*/
+				/*if (MusicOutputBuffer.RingBuffer_IsEmpty()) {
+					MusicOutputBuffer.RingBuffer_PutVecIntoBuffer(NLMS_Algorithm.getErrorVec());
+				}*/
 
-					/*NoiseInputBuffer.RingBuffer_Clear();
-					ErrorInputBuffer.RingBuffer_Clear();*/
+				NoiseInputBuffer.RingBuffer_Clear();
+				ErrorInputBuffer.RingBuffer_Clear();
 
-				}				
 			}
-		//});
+		}
+		});
+		t.detach();
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
@@ -183,29 +213,84 @@ namespace ANC {
 	*/
 	void ANC_System::updateOutputBuffer()
 	{
-		//std::thread t([&] {
-			//auto timePoint = std::chrono::steady_clock::now();
-			//auto period = static_cast<std::chrono::seconds>(FRAMES_PER_BUFFER / SAMPLE_RATE * 1000 / 2);
-			//const int time = FRAMES_PER_BUFFER / SAMPLE_RATE * 1000 / 2;
-			//auto period = std::chrono::milliseconds(time);
-			auto period = std::chrono::milliseconds(11);
+		std::chrono::system_clock::time_point currentStartTime{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point nextStartTime{ currentStartTime };
+		std::chrono::system_clock::duration wakeupError;
 
-			while (!StopThreads) {
-				std::this_thread::sleep_for(period);
+		std::thread t([&] {
+		while (!StopThreads) {
+			nextStartTime = currentStartTime + std::chrono::milliseconds(1);
+			std::this_thread::sleep_until(nextStartTime);
 
-				if (MusicOutputBuffer.RingBuffer_IsEmpty()) {
-					Music.updateBuffer();					
-					//MusicOutputBuffer.RingBuffer_PutVecIntoBuffer(NLMS_Algorithm.getErrorVec());
-					
-				}
+			if (!MusicOutputBuffer.RingBuffer_IsFull()) {
+				Music.updateBuffer();
+				//MusicOutputBuffer.RingBuffer_PutVecIntoBuffer(NLMS_Algorithm.getOutVec());
+
 			}
-		//});
+		}
+		});
+		t.detach();
 	}
 	void ANC_System::drawNLMSData()
 	{
-		while (!StopThreads) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			NLMS_Algorithm.drawData();
-		}
+		std::chrono::system_clock::time_point currentStartTime{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point nextStartTime{ currentStartTime };
+		std::chrono::system_clock::duration wakeupError;
+
+		std::thread t([&] {
+			while (!StopThreads) {
+				nextStartTime = currentStartTime + std::chrono::milliseconds(500);
+				std::this_thread::sleep_until(nextStartTime);
+
+				NLMS_Algorithm.drawData();
+			}
+		});
+		t.detach();
+	}
+	void ANC_System::loadNewNoiseVector()
+	{
+		std::chrono::system_clock::time_point currentStartTime{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point nextStartTime{ currentStartTime };
+		std::chrono::system_clock::duration wakeupError;
+
+		std::thread t([&] {
+			while (!StopThreads) {
+				nextStartTime = currentStartTime + std::chrono::milliseconds(1);
+				std::this_thread::sleep_until(nextStartTime);
+
+				if (newNoiseSampleAvailable.load() == true) {
+					//d = NoiseInputBuffer.RingBuffer_GetBufferAsVec();
+					//NoiseInputBuffer.RingBuffer_Clear();
+					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+
+					newNoiseVectorAvailable.store(true);
+					newNoiseSampleAvailable.store(false);
+				}
+			}
+		});
+		t.detach();
+	}
+	void ANC_System::loadNewErrorVector()
+	{
+		std::chrono::system_clock::time_point currentStartTime{ std::chrono::system_clock::now() };
+		std::chrono::system_clock::time_point nextStartTime{ currentStartTime };
+		std::chrono::system_clock::duration wakeupError;
+
+		std::thread t([&] {
+			while (!StopThreads) {
+				nextStartTime = currentStartTime + std::chrono::milliseconds(1);
+				std::this_thread::sleep_until(nextStartTime);
+
+				if (newErrorSampleAvailable.load() == true) {
+					//x = ErrorInputBuffer.RingBuffer_GetBufferAsVec();
+					//ErrorInputBuffer.RingBuffer_Clear();
+					//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+
+					newErrorVectorAvailable.store(true);
+					newErrorSampleAvailable.store(false);
+				}
+			}
+		});
+		t.detach();
 	}
 } //ANC

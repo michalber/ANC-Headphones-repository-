@@ -1,8 +1,6 @@
 #pragma once
 
-#ifndef DEBUG
-	#define DEBUG 0
-#endif // DEBUG
+#include "config.h"
 
 #ifndef TIME_DEBUG
 	#define TIME_DEBUG 0

@@ -6,23 +6,9 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include "config.h"
 #include "ring_buffer.h"
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif // DEBUG
-
-#ifndef SAMPLE_RATE
-#define SAMPLE_RATE   (44100)
-#endif //SAMPLE_RATE
-
-#ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (2048)
-#endif //FRAMES_PER_BUFFER
-
-#ifndef TIME_DEBUG
-#define TIME_DEBUG 0
-#endif // TIME_DEBUG
 
 namespace AS {
 

@@ -4,9 +4,11 @@
 
 
 #include <thread>
+#include <future>
 #include <atomic>
 #include <chrono>
 
+#include "config.h"
 #include "ring_buffer.h"
 //#include "RLMS.h"
 #include "NLMS.h"
@@ -15,24 +17,6 @@
 #include "ScopedPaHandler.h"
 #include "AudioStream.h"
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif // DEBUG
-
-#ifndef SAMPLE_RATE
-#define SAMPLE_RATE   (44100)
-#endif //SAMPLE_RATE
-
-#ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (2048)
-#endif //FRAMES_PER_BUFFER
-
-#ifndef TIME_DEBUG
-#define TIME_DEBUG 0
-#endif // TIME_DEBUG
-
-#if TIME_DEBUG
-#endif
 
 using std::cout;
 using std::endl;
@@ -44,6 +28,9 @@ namespace ANC {
 		int M;
 		float Lambda;
 
+		const double microsPerClkTic{ 1.0E6 * std::chrono::system_clock::period::num / std::chrono::system_clock::period::den };
+		const std::chrono::microseconds intervalPeriodMillis{ 10 };
+
 		arma::vec x;
 		arma::vec d;
 		
@@ -51,23 +38,29 @@ namespace ANC {
 		std::atomic<bool> newErrorSampleAvailable = 0;
 		std::atomic<bool> newNoiseSampleAvailable = 0;
 		std::atomic<int> newMusicSampleAvailable = 0;
+		std::atomic<bool> newNoiseVectorAvailable = 0;
+		std::atomic<bool> newErrorVectorAvailable = 0;
 		std::atomic<bool> speedUpANCSampling = 0;
 				
 		//RLMS::RLMS RLMS_Algorithm;
 		Adaptive::NLMS NLMS_Algorithm;
 		RingBuffer::RingBuffer<float> NoiseInputBuffer;
 		RingBuffer::RingBuffer<float> ErrorInputBuffer;
-		RingBuffer::RingBuffer<float> MusicOutputBuffer;
+		RingBuffer::RingBuffer<float> MusicOutputBuffer;		
 
 		Wrapper::ThreadWrapper updateInputBuffers_Thread;
 		Wrapper::ThreadWrapper processDataWithRLMS_Thread;
 		Wrapper::ThreadWrapper updateOutputBuffer_Thread;
 		Wrapper::ThreadWrapper drawNLMSData_Thread;
+		Wrapper::ThreadWrapper loadNewNoiseVector_Thread;
+		Wrapper::ThreadWrapper loadNewErrorVector_Thread;
 
 		std::function<void()> updateInputBuffers_Func;
 		std::function<void()> processDataWithRLMS_Func;
 		std::function<void()> updateOutputBuffer_Func;
 		std::function<void()> drawNLMSData_Func;
+		std::function<void()> loadNewNoiseVector_Func;
+		std::function<void()> loadNewErrorVector_Func;
 
 		AI::AudioInterface AudioOutput;
 		Handler::ScopedPaHandler paInit;
@@ -86,6 +79,8 @@ namespace ANC {
 		void processDataWithRLMS();
 		void updateOutputBuffer();	
 		void drawNLMSData();
+		void loadNewNoiseVector();
+		void loadNewErrorVector();
 	};
 }
 

@@ -1,4 +1,4 @@
-#include "AudioStream.h"
+#include "../ANC-Headphones-repository-/AudioStream.h"
 
 namespace AS {
 	//--------------------------------------------------------------------------------------------------------------------
@@ -23,13 +23,15 @@ namespace AS {
 		{
 			std::cout << " Error, Couldn't find the file" << "\n";
 		}
+		else {
 
-		fin3.seekg(0, std::ios::end);
-		num_elements = fin3.tellg() / sizeof(float);
-		fin3.seekg(0, std::ios::beg);
+			fin3.seekg(0, std::ios::end);
+			num_elements = fin3.tellg() / sizeof(float);
+			fin3.seekg(0, std::ios::beg);
 
-		data3 = std::vector<float>(num_elements);
-		fin3.read(reinterpret_cast<char*>(data3.data()), num_elements * sizeof(float));
+			data3 = std::vector<float>(num_elements);
+			fin3.read(reinterpret_cast<char*>(data3.data()), num_elements * sizeof(float));
+		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 		/**
@@ -48,13 +50,15 @@ namespace AS {
 		{
 			std::cout << " Error, Couldn't find the file" << "\n";
 		}
+		else {
 
-		fin3.seekg(0, std::ios::end);
-		num_elements = fin3.tellg() / sizeof(float);
-		fin3.seekg(0, std::ios::beg);
+			fin3.seekg(0, std::ios::end);
+			num_elements = fin3.tellg() / sizeof(float);
+			fin3.seekg(0, std::ios::beg);
 
-		data3 = std::vector<float>(num_elements);
-		fin3.read(reinterpret_cast<char*>(data3.data()), num_elements * sizeof(float));
+			data3 = std::vector<float>(num_elements);
+			fin3.read(reinterpret_cast<char*>(data3.data()), num_elements * sizeof(float));
+		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 		/**

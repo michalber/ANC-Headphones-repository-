@@ -4,20 +4,10 @@
 
 #include <atomic>
 #include "portaudio.h"
+#include "config.h"
 #include "ring_buffer.h"
 #include "AudioStream.h"
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif // DEBUG
-
-#ifndef SAMPLE_RATE
-#define SAMPLE_RATE   (44100)
-#endif //SAMPLE_RATE
-
-#ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (2048)
-#endif //FRAMES_PER_BUFFER
 
 #ifndef M_PI
 #define M_PI  (3.14159265)

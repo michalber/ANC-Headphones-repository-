@@ -2,15 +2,9 @@
 #ifndef _RING_BUFFER_H_
 #define _RING_BUFFER_H_
 
-#ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (2048)
-#endif //FRAMES_PER_BUFFER
 
 #include <armadillo>
-
-#ifndef DEBUG
-	#define DEBUG 0
-#endif // DEBUG
+#include "config.h"
 
 namespace RingBuffer {
 	template <typename T>

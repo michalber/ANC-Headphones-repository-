@@ -3,7 +3,7 @@ Copywright - Michał Berdzik, AGH UST 2019, Cracow
 github - @michalber
 Date: 26.05.2019
 */
-#include "RLMS.h"
+#include "../ANC-Headphones-repository-/RLMS.h"
 
 namespace RLMS {
 	//--------------------------------------------------------------------------------------------------------------------
