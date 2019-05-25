@@ -11,6 +11,7 @@ To run this application you will need few additional libraries:
 - PortAudio
 - Sigpack
 - Armadillo
+- Boost
 
 ### Deployment
 
