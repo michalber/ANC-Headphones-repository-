@@ -30,7 +30,7 @@ namespace Adaptive {
 	public:
 
 
-		NLMS() :pNumOfTaps(50), stepSize(0.01), RFactor(0.001)
+		NLMS() :pNumOfTaps(60), stepSize(0.001), RFactor(0.001)
 		{
 			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
 			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
@@ -115,6 +115,18 @@ namespace Adaptive {
 			gpErr.draw_now();
 
 			gpOut.plot_add(y, "Out");
+			gpOut.plot_show();
+			gpOut.draw_now();
+#endif
+		}
+		void drawData(arma::vec xx, arma::vec yy, std::string namex = "", std::string namey ="")
+		{
+#if PLOT_DATA
+			gpErr.plot_add(xx, namex);
+			gpErr.plot_show();
+			gpErr.draw_now();
+
+			gpOut.plot_add(yy, namey);
 			gpOut.plot_show();
 			gpOut.draw_now();
 #endif

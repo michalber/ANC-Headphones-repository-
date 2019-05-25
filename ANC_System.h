@@ -36,11 +36,13 @@ namespace ANC {
 		arma::vec d;
 		
 		std::atomic<bool> StopThreads = 0;
-		std::atomic<bool> newErrorSampleAvailable = 0;
-		std::atomic<bool> newNoiseSampleAvailable = 0;
-		std::atomic<int> newMusicSampleAvailable = 0;
-		std::atomic<bool> newNoiseVectorAvailable = 0;
-		std::atomic<bool> newErrorVectorAvailable = 0;
+
+		std::atomic_bool newErrorSampleAvailable {false};
+		std::atomic_bool newNoiseSampleAvailable {false};
+		std::atomic<int> newMusicSampleAvailable;
+		std::atomic_bool newNoiseVectorAvailable {false};
+		std::atomic_bool newErrorVectorAvailable {false};
+
 		std::atomic<bool> speedUpANCSampling = 0;
 				
 		//RLMS::RLMS RLMS_Algorithm;
@@ -51,27 +53,15 @@ namespace ANC {
 
 		boost::circular_buffer<float> NIB;
 		boost::circular_buffer<float> EIB;
-		boost::circular_buffer<float> MOB;
-
-		Wrapper::ThreadWrapper updateInputBuffers_Thread;
-		Wrapper::ThreadWrapper processDataWithRLMS_Thread;
-		Wrapper::ThreadWrapper updateOutputBuffer_Thread;
-		Wrapper::ThreadWrapper drawNLMSData_Thread;
-		Wrapper::ThreadWrapper loadNewNoiseVector_Thread;
-		Wrapper::ThreadWrapper loadNewErrorVector_Thread;
-
-		std::function<void()> updateInputBuffers_Func;
-		std::function<void()> processDataWithRLMS_Func;
-		std::function<void()> updateOutputBuffer_Func;
-		std::function<void()> drawNLMSData_Func;
-		std::function<void()> loadNewNoiseVector_Func;
-		std::function<void()> loadNewErrorVector_Func;
+		boost::circular_buffer<float> MOB;	
+		boost::circular_buffer<float> FIN;
 
 		AI::AudioInterface AudioOutput;
 		Handler::ScopedPaHandler paInit;
 
 		AS::AudioStream Music;
 		AS::AudioStream Noise;
+		AS::AudioStream FilteredNoise;
 		AS::AudioStream MusicNoise;
 
 	public:	
@@ -86,6 +76,9 @@ namespace ANC {
 		void drawNLMSData();
 		void loadNewNoiseVector();
 		void loadNewErrorVector();
+
+		arma::vec getCircBufferAsVec(boost::circular_buffer<float>*);
+		void putVecIntoCircBuffer(boost::circular_buffer<float>*, arma::vec);
 	};
 }
 
