@@ -7,6 +7,7 @@
 #include <future>
 #include <atomic>
 #include <chrono>
+#include <boost/circular_buffer.hpp>
 
 #include "config.h"
 #include "ring_buffer.h"
@@ -46,7 +47,11 @@ namespace ANC {
 		Adaptive::NLMS NLMS_Algorithm;
 		RingBuffer::RingBuffer<float> NoiseInputBuffer;
 		RingBuffer::RingBuffer<float> ErrorInputBuffer;
-		RingBuffer::RingBuffer<float> MusicOutputBuffer;		
+		RingBuffer::RingBuffer<float> MusicOutputBuffer;
+
+		boost::circular_buffer<float> NIB;
+		boost::circular_buffer<float> EIB;
+		boost::circular_buffer<float> MOB;
 
 		Wrapper::ThreadWrapper updateInputBuffers_Thread;
 		Wrapper::ThreadWrapper processDataWithRLMS_Thread;

@@ -3,6 +3,8 @@
 #define _AUDIO_INTERFACE_H_
 
 #include <atomic>
+#include <boost/circular_buffer.hpp>
+
 #include "portaudio.h"
 #include "config.h"
 #include "ring_buffer.h"
@@ -19,6 +21,7 @@ namespace AI {
 	{
 		PaStream *stream;
 		RingBuffer::RingBuffer<float> *OutputBuffer = NULL;
+		boost::circular_buffer<float> *OB = NULL;
 		std::atomic<int> *dataReaded = NULL;
 		double *buffer;
 		int left_phase;
@@ -34,6 +37,7 @@ namespace AI {
 		bool start();
 		bool stop();
 		void setUpBuffer(RingBuffer::RingBuffer<float> *, std::atomic<int> *);
+		void setUpBuffer(boost::circular_buffer<float> *);
 
 	private:
 		int paCallbackMethod(const void *, void *,unsigned long, const PaStreamCallbackTimeInfo*,const PaStreamCallbackFlags);

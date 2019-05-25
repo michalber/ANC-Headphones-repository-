@@ -151,6 +151,11 @@ namespace AI {
 		dataReaded = y;
 	}
 
+	void AudioInterface::setUpBuffer(boost::circular_buffer<float>* x)
+	{
+		OB = x;
+	}
+
 	//--------------------------------------------------------------------------------
 	/**
 			@brief Own callback to update Port Audio API
@@ -179,10 +184,10 @@ namespace AI {
 		(void)inputBuffer;
 
 		static unsigned long temp = 0;
-		dataReaded->store(-1);
+
 		//std::cout << "Pobieram próbki: " << temp << std::endl;
 
-		for (i = temp; i < temp + framesPerBuffer; i++)
+		for (i = 0; i < FRAMES_PER_BUFFER; i++)
 		{
 			/*
 				We just simply add new data to outputBuffer
@@ -190,8 +195,12 @@ namespace AI {
 			//*out++ = Music.data3[i];
 			//*out++ = *(buffer+i);
 			//*out++ = rand();
-			*out++ = OutputBuffer->RingBuffer_Get();			
-
+			//*out++ = OutputBuffer->RingBuffer_Get();		
+			if (OB->size() > FRAMES_PER_BUFFER) {
+				*out++ = OB->back();
+				OB->pop_back();
+			}
+			
 			//*out++ = sine[left_phase];  /* left */
 			//*out++ = sine[right_phase];  /* right */
 			//left_phase += 1;
@@ -199,8 +208,8 @@ namespace AI {
 			//right_phase += 3; /* higher pitch so we can distinguish left and right. */
 			//if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
 		}		
-		temp = i;
-		dataReaded->store(1);
+		//temp = i;
+
 
 		return paContinue;
 	}

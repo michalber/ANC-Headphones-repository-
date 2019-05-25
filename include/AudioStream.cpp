@@ -68,8 +68,12 @@ namespace AS {
 		*/
 	void AudioStream::setUpBuffer(RingBuffer::RingBuffer<float>* x)
 	{
-		musicStream = x;
-	}
+		//musicStream = x;
+	} 
+			void AudioStream::setUpBuffer(boost::circular_buffer<float>* x)
+			{
+				musicStream = x;
+			}
 	//--------------------------------------------------------------------------------------------------------------------
 		/**
 			@brief Function to load new frame of data to buffer
@@ -79,11 +83,14 @@ namespace AS {
 	void AudioStream::updateBuffer()
 	{
 		unsigned long i = 0;
-		static unsigned long temp;
+		static unsigned long temp = 0;
 		if (temp < data3.size()) {
 			for (i = temp; i < temp + FRAMES_PER_BUFFER; i++)
 			{
-				musicStream->RingBuffer_Put(data3[i]);
+				//musicStream->RingBuffer_Put(data3[i]);
+				if(!musicStream->full())
+					musicStream->push_front(data3[i]);
+				else break;
 			}
 			temp = i;
 		}

@@ -211,7 +211,7 @@ namespace RingBuffer {
 			return head - tail;
 		}
 		else {
-			return numOfElem - tail + head;
+			return (numOfElem - tail + head) * sizeof(T);
 		}
 	}
 	// -------------------------------------------------------------------------------------------------------------
@@ -235,7 +235,7 @@ namespace RingBuffer {
 	{
 		if (this->RingBuffer_GetLen() < numOfElem) {
 			*(buff + head) = t;			
-			temp(head) = t;
+			//temp(head) = t;
 			if (head == numOfElem - 1)
 				head = 0;
 			else
