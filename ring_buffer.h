@@ -4,6 +4,7 @@
 
 
 #include <armadillo>
+#include <atomic>
 #include "config.h"
 
 namespace RingBuffer {
@@ -11,11 +12,11 @@ namespace RingBuffer {
 
 	class RingBuffer {
 
-		volatile int head;
-		volatile int tail;
-		volatile int numOfElem;
+		std::atomic_int head;
+		std::atomic_int tail;
+		int numOfElem;
 		T* buff;
-		volatile bool fullFlag;
+		std::atomic_bool fullFlag;
 		arma::vec temp;
 
 
@@ -293,9 +294,9 @@ namespace RingBuffer {
 	template<typename T>
 	arma::vec RingBuffer<T>::RingBuffer_GetBufferAsVec()
 	{
-		/*for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
+		for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
 			temp(i) = this->RingBuffer_Get();
-		}*/
+		}
 		head = 0;
 		tail = 0;
 		fullFlag = false;

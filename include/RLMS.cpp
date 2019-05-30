@@ -41,9 +41,11 @@ namespace RLMS {
 		l.zeros();
 		temp.zeros();
 
-		p.eye();
-		double a = 0.01;
-		p *= a;
+		p.eye();		
+		p *= 0.01;
+
+		mu = 0.5;
+		a = 0.01;
 
 		//clear();
 	}
@@ -67,9 +69,11 @@ namespace RLMS {
 		l.zeros();
 		temp.zeros();
 
-		p.eye();
-		double a = 0.01;
-		p *= a;
+		p.eye();		
+		p *= 0.01;
+
+		mu = 0.5;
+		a = 0.001;
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
@@ -124,9 +128,11 @@ namespace RLMS {
 			l.zeros();
 			temp.zeros();
 
-			p.eye();
-			double a = 0.01;
-			p *= a;
+			p.eye();			
+			p *= 0.01;
+
+			mu = 0.5;
+			a = 0.001;
 
 			return true;
 		}
@@ -146,19 +152,15 @@ namespace RLMS {
 		f_d - music+noise - mic in headphone cup
 				d = music + noise
 		f_x - noise - mic outside headphone
-
 		MATLAB code of RLMS function
-
 			I = eye(M);		% matrix M x M
 			a = 0.01;
 			p = a * I;		% matrix	M x M
-
 			x = x;			% music vector
 			w1 = zeros(M,1);	% static coefficients
 			y = zeros(Ns, 1);	% music out
 			e = zeros(Ns, 1);	% error out
 			xx = zeros(M,1);
-
 			for n = 1:Ns		% this is iteration in all music samples so it can be changed to single function on one sample without loop
 				xx = [x(n); xx(1:M-1)];
 				k = (p * xx) ./ (lamda + xx' * p * xx);
@@ -202,7 +204,7 @@ namespace RLMS {
 		k.print();
 		cout << endl;
 
-		cout << "w1: " << endl;
+		cout << "w1: " << endl;	
 		w1.print();
 		cout << endl;
 
@@ -224,6 +226,41 @@ namespace RLMS {
 		plastSample = pY(0, 0);
 		return plastSample;
 #endif
+	}
+	double RLMS::processNLMS(double f_d, double f_x, double f_m)
+	{
+	/*
+	MATLAB code for my NLMS
+
+		x = x; 
+		xx = zeros(M,1);
+		w1 = zeros(M,1);
+		y = zeros(Ns,1);
+		e = zeros(Ns,1);
+		
+		for n = 1:Ns
+		    xx = [xx(2:M);x(n)];
+		    y(n) = w1' * xx;
+		    k = mu/(a + xx'*xx);
+		    e(n) = d(n) - y(n);
+		    w1 = w1 + k * e(n) * xx;
+		    w(:,n) = w1;
+		end
+	*/
+		pushBack(xx, f_x);
+		f_d -= f_m;  
+
+		xx_t = trans(xx);		
+		w1_t = trans(w1);		
+		
+		pY = w1_t * xx;	
+		l = xx_t * xx;
+		k = mu / (a + l(0,0));
+		e = f_d - pY(0, 0);
+		w1 = w1 + (k(0,0) * e) * xx;
+		y = pY(0, 0);		
+
+		return y;
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
@@ -259,4 +296,19 @@ namespace RLMS {
 		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Michał Berdzik
+		@version 0.0.1 28-04-2019
+		@param
+		@retval
+	*/
+	void RLMS::pushBack(colvec &a, double x)
+	{
+		temp = a;
+		for (int i = 0; i < pNumOfTaps-1; i++) {
+			a(i, 0) = temp(i + 1, 0);
+		}
+		a(pNumOfTaps-1, 0) = x;
+	}
 }

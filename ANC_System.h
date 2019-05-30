@@ -26,11 +26,11 @@ namespace ANC {
 
 	class ANC_System
 	{		
+		bool t = true;
+		bool f = false;
+
 		int M;
 		float Lambda;
-
-		const double microsPerClkTic{ 1.0E6 * std::chrono::system_clock::period::num / std::chrono::system_clock::period::den };
-		const std::chrono::microseconds intervalPeriodMillis{ 10 };
 
 		arma::vec x;
 		arma::vec d;
@@ -47,9 +47,6 @@ namespace ANC {
 				
 		//RLMS::RLMS RLMS_Algorithm;
 		Adaptive::NLMS NLMS_Algorithm;
-		RingBuffer::RingBuffer<float> NoiseInputBuffer;
-		RingBuffer::RingBuffer<float> ErrorInputBuffer;
-		RingBuffer::RingBuffer<float> MusicOutputBuffer;
 
 		boost::circular_buffer<float> NIB;
 		boost::circular_buffer<float> EIB;
@@ -70,7 +67,8 @@ namespace ANC {
 		~ANC_System();
 
 	private:		
-		void updateInputBuffers();
+		void updateNoiseBuffer();
+		void updateErrorBuffer();
 		void processDataWithRLMS();
 		void updateOutputBuffer();	
 		void drawNLMSData();

@@ -187,27 +187,32 @@ namespace AI {
 
 		//std::cout << "Pobieram próbki: " << temp << std::endl;
 
-		for (i = 0; i < FRAMES_PER_BUFFER; i++)
-		{
-			/*
-				We just simply add new data to outputBuffer
-			*/						
-			//*out++ = Music.data3[i];
-			//*out++ = *(buffer+i);
-			//*out++ = rand();
-			//*out++ = OutputBuffer->RingBuffer_Get();		
-			if (OB->size() > FRAMES_PER_BUFFER) {
-				*out++ = OB->back();
-				OB->pop_back();
+		//if (OB->size() >= FRAMES_PER_BUFFER) {
+			for (i = 0; i < framesPerBuffer; i++)
+			{
+				/*
+					We just simply add new data to outputBuffer
+				*/
+				//*out++ = Music.data3[i];
+				//*out++ = *(buffer+i);
+				//*out++ = rand();
+				//*out++ = OutputBuffer->RingBuffer_Get();		
+
+				if (//OB->size() > FRAMES_PER_BUFFER &&
+					!OB->empty()) {
+					*out++ = OB->back();
+					OB->pop_back();
+				}
+				else *out++ = 0;
+
+				//*out++ = sine[left_phase];  /* left */
+				//*out++ = sine[right_phase];  /* right */
+				//left_phase += 1;
+				//if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
+				//right_phase += 3; /* higher pitch so we can distinguish left and right. */
+				//if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
 			}
-			
-			//*out++ = sine[left_phase];  /* left */
-			//*out++ = sine[right_phase];  /* right */
-			//left_phase += 1;
-			//if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
-			//right_phase += 3; /* higher pitch so we can distinguish left and right. */
-			//if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
-		}		
+		//}
 		//temp = i;
 
 

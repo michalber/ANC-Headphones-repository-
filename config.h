@@ -11,7 +11,7 @@
 #endif //SAMPLE_RATE
 //-----------------------------------------------------------------------------------------------
 #ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (1024)
+#define FRAMES_PER_BUFFER  (256)
 #endif //FRAMES_PER_BUFFER
 //-----------------------------------------------------------------------------------------------
 #ifndef TIME_DEBUG

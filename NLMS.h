@@ -21,6 +21,8 @@ namespace Adaptive {
 		// Signal vectors
 		arma::vec y;  // Output data
 		arma::vec e;  // Error data
+		float y_f;
+		float e_f;
 
 #if PLOT_DATA
 		sp::gplot gpErr;
@@ -30,7 +32,7 @@ namespace Adaptive {
 	public:
 
 
-		NLMS() :pNumOfTaps(60), stepSize(0.001), RFactor(0.001)
+		NLMS() :pNumOfTaps(60), stepSize(0.5), RFactor(0.001)
 		{
 			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
 			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
@@ -85,7 +87,7 @@ namespace Adaptive {
 				@param arma::vec x  -  signal of readed noise
 				@param arma::vec d  -  signal of readed music+noise
 			*/
-		void updateNLMS(arma::vec x, arma::vec d)
+		void updateNLMS(arma::vec d, arma::vec x, arma::vec m)
 		{
 			for (int n = 0; n < FRAMES_PER_BUFFER; n++)
 			{
@@ -93,12 +95,27 @@ namespace Adaptive {
 				y(n) = AdaptiveFilter(x(n));
 
 				// Calc error
-				e(n) = d(n) - y(n);
+				e(n) = (d(n) - m(n)) - y(n);
 
 				// Update filter
 				AdaptiveFilter.nlms_adapt(e(n));
 			}
 		}
+		double updateNLMS(double d, double x, double m)
+		{
+			// Apply adaptiv filter
+			y_f = AdaptiveFilter(x);
+
+			// Calc error
+			e_f = (d - m) - y_f;
+
+			// Update filter
+			AdaptiveFilter.nlms_adapt(e_f);
+
+			return y_f;
+		}
+
+
 		//--------------------------------------------------------------------------------
 		/**
 				@brief Function to draw error data using Sigpack library
