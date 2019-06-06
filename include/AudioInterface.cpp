@@ -187,8 +187,8 @@ namespace AI {
 
 		//std::cout << "Pobieram próbki: " << temp << std::endl;
 
-		//if (OB->size() >= FRAMES_PER_BUFFER) {
-			for (i = 0; i < framesPerBuffer; i++)
+		//if ((OB->size() % FRAMES_PER_BUFFER) == 0) {
+			for (i = 0; i < FRAMES_PER_BUFFER; i++)
 			{
 				/*
 					We just simply add new data to outputBuffer
@@ -198,12 +198,12 @@ namespace AI {
 				//*out++ = rand();
 				//*out++ = OutputBuffer->RingBuffer_Get();		
 
-				if (//OB->size() > FRAMES_PER_BUFFER &&
+				if (//OB->size() > FRAMES_PER_BUFFER && 
 					!OB->empty()) {
 					*out++ = OB->back();
 					OB->pop_back();
 				}
-				else *out++ = 0;
+				//else *out++ = 0;
 
 				//*out++ = sine[left_phase];  /* left */
 				//*out++ = sine[right_phase];  /* right */

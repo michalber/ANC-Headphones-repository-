@@ -60,9 +60,7 @@ namespace ANC {
 		processDataWithRLMS_Thread.detach();
 		updateOutputBuffer_Thread .detach();
 		drawNLMSData_Thread		  .detach();*/
-
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		
 
 		if (paInit.result() != paNoError) {
 			fprintf(stderr, "An error occured while using the portaudio stream\n");
@@ -77,14 +75,14 @@ namespace ANC {
 #endif // DEBUG
 			}
 		}				
-		//updateNoiseBuffer();
-		//updateErrorBuffer();
-		//loadNewNoiseVector();
+		updateNoiseBuffer();
+		updateErrorBuffer();
+		loadNewNoiseVector();
 		//loadNewErrorVector();
-		//processDataWithRLMS();
+		processDataWithRLMS();
 		updateOutputBuffer();
 #if PLOT_DATA
-		//drawNLMSData();
+		drawNLMSData();
 #endif
 	}
 	//--------------------------------------------------------------------------------------------------------------------
@@ -238,20 +236,19 @@ namespace ANC {
 	*/
 	void ANC_System::updateOutputBuffer()
 	{
-		std::chrono::steady_clock::time_point currentStartTime{ std::chrono::steady_clock::now() };
-		std::chrono::steady_clock::time_point nextStartTime{ currentStartTime };
+		//std::chrono::steady_clock::time_point currentStartTime{ std::chrono::steady_clock::now() };
+		//std::chrono::steady_clock::time_point nextStartTime{ currentStartTime };
 
 		std::thread t([&] {	
 		//std::async(std::launch::async, [&] {
 			while (!StopThreads) {
 				//nextStartTime = currentStartTime + std::chrono::microseconds(500);				
 				//std::this_thread::sleep_until(nextStartTime);
-				//std::this_thread::sleep_for(std::chrono::microseconds(50));				
+				std::this_thread::sleep_for(std::chrono::microseconds(1000));				
 
-				if ((MOB.size() % FRAMES_PER_BUFFER) == 0 &&
-					!MOB.full()) {
+				if ((MOB.size() % FRAMES_PER_BUFFER) == 0 && !MOB.full()) {
 					Music.updateBuffer();
-					//putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());
+					//putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());					
 				}
 			}
 		});
@@ -263,8 +260,11 @@ namespace ANC {
 		std::thread t([&] {
 			while (!StopThreads) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(500));
-				//NLMS_Algorithm.drawData(x,d,"x","d");
-				NLMS_Algorithm.drawData();
+				{
+					std::lock_guard<std::mutex> lk(mut);
+					NLMS_Algorithm.drawData(x, d, "x", "d");
+					//NLMS_Algorithm.drawData();
+				}
 			}
 		});
 		t.detach();
@@ -273,17 +273,30 @@ namespace ANC {
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(50));
+				std::this_thread::sleep_for(std::chrono::microseconds(100));
+				{
+					std::lock_guard<std::mutex> lk(mut);
 
-				if (newNoiseSampleAvailable.load(std::memory_order_acquire) == true &&
-					newNoiseVectorAvailable.load(std::memory_order_acquire) == false) {
+					if (newNoiseSampleAvailable.load(std::memory_order_acquire) == true &&
+						newNoiseVectorAvailable.load(std::memory_order_acquire) == false) {
 
-					x = getCircBufferAsVec(&NIB);
-					//NoiseInputBuffer.RingBuffer_Clear();
-					//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+						//x = getCircBufferAsVec(&NIB);
+						//NoiseInputBuffer.RingBuffer_Clear();
+						x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 
-					newNoiseVectorAvailable.store(true, std::memory_order_release);
-					newNoiseSampleAvailable.store(false, std::memory_order_release);
+						newNoiseVectorAvailable.store(true, std::memory_order_release);
+						newNoiseSampleAvailable.store(false, std::memory_order_release);
+					}
+					if (newErrorSampleAvailable.load(std::memory_order_acquire) == true &&
+						newErrorVectorAvailable.load(std::memory_order_acquire) == false) {
+
+						//d = getCircBufferAsVec(&EIB);
+						//ErrorInputBuffer.RingBuffer_Clear();
+						d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+
+						newErrorVectorAvailable.store(true, std::memory_order_release);
+						newErrorSampleAvailable.store(false, std::memory_order_release);
+					}
 				}
 			}
 		});
@@ -293,14 +306,14 @@ namespace ANC {
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(50));
+				std::this_thread::sleep_for(std::chrono::microseconds(100));
 
 				if (newErrorSampleAvailable.load(std::memory_order_acquire) == true &&
 					newErrorVectorAvailable.load(std::memory_order_acquire) == false) {
 
-					d = getCircBufferAsVec(&EIB);
+					//d = getCircBufferAsVec(&EIB);
 					//ErrorInputBuffer.RingBuffer_Clear();
-					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+					d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 
 					newErrorVectorAvailable.store(true, std::memory_order_release);
 					newErrorSampleAvailable.store(false, std::memory_order_release);

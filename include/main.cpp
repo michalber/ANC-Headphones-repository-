@@ -154,70 +154,162 @@
 ////
 
 
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <vector>
-#include "../ANC-Headphones-repository-/RLMS.h"
-#include "../ANC-Headphones-repository-/NLMS.h"
+//#include <iostream>
+//#include <iomanip>
+//#include <fstream>
+//#include <vector>
+//#include "../ANC-Headphones-repository-/RLMS.h"
+//#include "../ANC-Headphones-repository-/NLMS.h"
+//
+//int main()
+//{	
+//	RLMS::RLMS RLMS(20, 0.999);
+//	Adaptive::NLMS NLMS(128,0.03,0.001);
+//
+//	std::ofstream fout("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Out.raw", std::ios::binary);
+//	
+//	std::ifstream fin1("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\NoiseT.raw", std::ios::binary);
+//	if (!fin1)
+//	{
+//		std::cout << " Error, Couldn't find the file" << "\n";
+//		return 0;
+//	}
+//	std::ifstream fin2("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco+n.raw", std::ios::binary);
+//	if (!fin2)
+//	{
+//		std::cout << " Error, Couldn't find the file" << "\n";
+//		return 0;
+//	}
+//	std::ifstream fin3("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco.raw", std::ios::binary);
+//	if (!fin2)
+//	{
+//		std::cout << " Error, Couldn't find the file" << "\n";
+//		return 0;
+//	}
+//
+//	fin1.seekg(0, std::ios::end);
+//	const size_t num_elements = fin1.tellg() / sizeof(float);
+//	fin1.seekg(0, std::ios::beg);
+//
+//	std::vector<float> data1(num_elements);
+//	std::vector<float> data2(num_elements);
+//	std::vector<float> data3(num_elements);
+//
+//	fin1.read(reinterpret_cast<char*>(&data1[0]), num_elements * sizeof(float));
+//	fin2.read(reinterpret_cast<char*>(&data2[0]), num_elements * sizeof(float));
+//	fin3.read(reinterpret_cast<char*>(&data3[0]), num_elements * sizeof(float));
+//
+//	for (size_t i = 0; i < data1.size(); i++)
+//	{				
+//		//float temp = RLMS.processNLMS(data2[i], data1[i], data3[i]);
+//		float temp = NLMS.updateNLMS(data2[i], data1[i], data3[i]);
+//		fout.write(reinterpret_cast<const char*>(&temp), sizeof(temp));
+//	}
+//	fout.close();
+//
+//	//getchar();
+//	return 0;
+//}
 
-int main()
-{	
-	RLMS::RLMS RLMS(50, 0.9999);
-	Adaptive::NLMS NLMS(50,0.5,0.01);
 
-	std::ofstream fout("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Out.raw", std::ios::binary);
-	
-	std::ifstream fin1("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\NoiseT.raw", std::ios::binary);
-	if (!fin1)
-	{
-		std::cout << " Error, Couldn't find the file" << "\n";
-		return 0;
+
+#include "../ANC-Headphones-repository-/ANC_System.h"
+
+std::vector<float> getCircBufferAsVec(boost::circular_buffer<float> *buff)
+{
+	/*
+	max time: 1ms
+	*/
+	//temp.fill(0);
+	static std::vector<float> temp(FRAMES_PER_BUFFER);
+	temp.clear();
+	//if (buff->size() >= FRAMES_PER_BUFFER) {
+	for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
+		temp.push_back(buff->back());
+		buff->pop_back();
 	}
-	std::ifstream fin2("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco+n.raw", std::ios::binary);
-	if (!fin2)
-	{
-		std::cout << " Error, Couldn't find the file" << "\n";
-		return 0;
+	//}
+	return temp;
+}
+
+void putVecIntoCircBuffer(boost::circular_buffer<float> *buff, std::vector<float> in)
+{
+	/*
+	max time = 2ms
+	*/
+	for (int i = 0; i < in.size(); i++) {
+		buff->push_front(in[i]);
 	}
-	std::ifstream fin3("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco.raw", std::ios::binary);
-	if (!fin2)
-	{
-		std::cout << " Error, Couldn't find the file" << "\n";
-		return 0;
-	}
-
-	fin1.seekg(0, std::ios::end);
-	const size_t num_elements = fin1.tellg() / sizeof(float);
-	fin1.seekg(0, std::ios::beg);
-
-	std::vector<float> data1(num_elements);
-	std::vector<float> data2(num_elements);
-	std::vector<float> data3(num_elements);
-
-	fin1.read(reinterpret_cast<char*>(&data1[0]), num_elements * sizeof(float));
-	fin2.read(reinterpret_cast<char*>(&data2[0]), num_elements * sizeof(float));
-	fin3.read(reinterpret_cast<char*>(&data3[0]), num_elements * sizeof(float));
-
-	for (size_t i = 0; i < data1.size(); i++)
-	{				
-		//float temp = RLMS.processNLMS(data2[i], data1[i], data3[i]);
-		float temp = NLMS.updateNLMS(data2[i], data1[i], data3[i]);
-		fout.write(reinterpret_cast<const char*>(&temp), sizeof(temp));
-	}
-	fout.close();
-
-	//getchar();
-	return 0;
 }
 
 
+int main() {
+	//ANC::ANC_System init;
 
-//#include "../ANC-Headphones-repository-/ANC_System.h"
-//
-//int main() {
-//	ANC::ANC_System init;
-//	
-//	std::cin.ignore();
-//	return 0;
-//}
+	std::ofstream fout("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Out.raw", std::ios::binary);
+	
+
+	boost::circular_buffer<float> NIB;
+	boost::circular_buffer<float> EIB;
+	boost::circular_buffer<float> MOB;
+
+	AS::AudioStream Music;
+	AS::AudioStream Noise;
+	AS::AudioStream FilteredNoise;
+	AS::AudioStream MusicNoise;
+
+
+	Adaptive::NLMS NLMS_Algorithm;
+
+	std::vector<float> x;
+	std::vector<float> d;
+
+	NIB.set_capacity(FRAMES_PER_BUFFER);
+	EIB.set_capacity(FRAMES_PER_BUFFER);
+	MOB.set_capacity(FRAMES_PER_BUFFER);
+
+	Music.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco.raw");
+	Music.setUpBuffer(&MOB);
+
+	Noise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\NoiseT.raw");
+	Noise.setUpBuffer(&NIB);
+
+	MusicNoise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco+n.raw");
+	MusicNoise.setUpBuffer(&EIB);
+
+
+
+	for (int i = 0; i < 1500; i++) {
+
+		//updateNoiseBuffer();
+		Noise.updateBuffer();
+
+		//updateErrorBuffer();
+		MusicNoise.updateBuffer();
+
+		//Music.updateBuffer();
+
+		//loadNewNoiseVector();
+		x = getCircBufferAsVec(&NIB);
+		d = getCircBufferAsVec(&EIB);
+
+		//processDataWithRLMS();
+		NLMS_Algorithm.updateNLMS(d, x, d);
+
+		//updateOutputBuffer();
+		x = NLMS_Algorithm.getErrorVector();
+		for (int j = 0; j < FRAMES_PER_BUFFER; j++)
+			fout.write(reinterpret_cast<const char*>(&x[j]), sizeof(float));	
+
+		x.clear();
+		d.clear();
+
+		//drawNLMSData();
+		//NLMS_Algorithm.drawData(x, d, "x", "d");
+		//NLMS_Algorithm.drawData();
+	}
+	fout.close();
+
+	std::cin.ignore();
+	return 0;
+}

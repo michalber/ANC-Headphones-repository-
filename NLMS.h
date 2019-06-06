@@ -4,6 +4,7 @@
 
 //-----------------------------------------------------------------------------------------------
 #include <sigpack.h>
+#include <mutex>
 #include "config.h"
 //-----------------------------------------------------------------------------------------------
 
@@ -12,6 +13,7 @@ namespace Adaptive {
 
 	class NLMS
 	{
+		std::mutex mut;
 		int pNumOfTaps;
 		double stepSize;
 		double RFactor;
@@ -21,6 +23,8 @@ namespace Adaptive {
 		// Signal vectors
 		arma::vec y;  // Output data
 		arma::vec e;  // Error data
+		std::vector<float> y_v;  // Output data
+		std::vector<float> e_v;  // Error data
 		float y_f;
 		float e_f;
 
@@ -89,30 +93,52 @@ namespace Adaptive {
 			*/
 		void updateNLMS(arma::vec d, arma::vec x, arma::vec m)
 		{
+			std::lock_guard<std::mutex> lk(mut);
 			for (int n = 0; n < FRAMES_PER_BUFFER; n++)
 			{
 				// Apply adaptiv filter
 				y(n) = AdaptiveFilter(x(n));
 
 				// Calc error
-				e(n) = (d(n) - m(n)) - y(n);
+				//e(n) = (d(n) - m(n)) - y(n);
+				e(n) = (d(n)) - y(n);
 
 				// Update filter
 				AdaptiveFilter.nlms_adapt(e(n));
 			}
 		}
+		void updateNLMS(std::vector<float> d, std::vector<float> x, std::vector<float> m)
+		{
+			std::lock_guard<std::mutex> lk(mut);
+			y_v.clear();
+			e_v.clear();
+			for (int n = 0; n < FRAMES_PER_BUFFER; n++)
+			{
+				// Apply adaptiv filter
+				y_v.push_back(AdaptiveFilter(x[n]));
+
+				// Calc error
+				//e(n) = (d(n) - m(n)) - y(n);
+				e_v.push_back((d[n]) - y_v[n]);
+
+				// Update filter
+				AdaptiveFilter.nlms_adapt(e_v[n]);
+			}
+		}
 		double updateNLMS(double d, double x, double m)
 		{
+			std::lock_guard<std::mutex> lk(mut);
 			// Apply adaptiv filter
 			y_f = AdaptiveFilter(x);
 
 			// Calc error
-			e_f = (d - m) - y_f;
+			//e_f = (d - m) - y_f;
+			e_f = (d) - y_f;
 
 			// Update filter
 			AdaptiveFilter.nlms_adapt(e_f);
 
-			return y_f;
+			return e_f;
 		}
 
 
@@ -126,6 +152,7 @@ namespace Adaptive {
 			*/
 		void drawData()
 		{
+			std::lock_guard<std::mutex> lk(mut);
 #if PLOT_DATA
 			gpErr.plot_add(e, "Error");
 			gpErr.plot_show();
@@ -138,6 +165,7 @@ namespace Adaptive {
 		}
 		void drawData(arma::vec xx, arma::vec yy, std::string namex = "", std::string namey ="")
 		{
+			std::lock_guard<std::mutex> lk(mut);
 #if PLOT_DATA
 			gpErr.plot_add(xx, namex);
 			gpErr.plot_show();
@@ -151,14 +179,26 @@ namespace Adaptive {
 
 		arma::vec getErrorVec()
 		{
+			std::lock_guard<std::mutex> lk(mut);
 			return e;
+		}
+		std::vector<float> getErrorVector()
+		{
+			std::lock_guard<std::mutex> lk(mut);
+			return e_v;
 		}
 
 		arma::vec getOutVec()
 		{
+			std::lock_guard<std::mutex> lk(mut);
 			return y;
+		}
+		std::vector<float> getOutVector()
+		{
+			std::lock_guard<std::mutex> lk(mut);
+			return y_v;
 		}
 		//--------------------------------------------------------------------------------
 	};
 }
-#endif // !_NLMS_H_
+#endif // !_NLMS_H_ 

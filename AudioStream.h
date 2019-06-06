@@ -18,7 +18,8 @@ namespace AS {
 		std::ifstream fin3;
 		//RingBuffer::RingBuffer<float> *musicStream;
 		boost::circular_buffer<float> *musicStream;
-		unsigned long num_elements;
+		size_t num_elements;
+		unsigned long temp = 0;
 	public:
 		std::vector<float> data3;
 

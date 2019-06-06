@@ -30,7 +30,7 @@ namespace AS {
 			fin3.seekg(0, std::ios::beg);
 
 			data3 = std::vector<float>(num_elements);
-			fin3.read(reinterpret_cast<char*>(data3.data()), num_elements * sizeof(float));
+			fin3.read(reinterpret_cast<char*>(&data3[0]), num_elements * sizeof(float));
 		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ namespace AS {
 			fin3.seekg(0, std::ios::beg);
 
 			data3 = std::vector<float>(num_elements);
-			fin3.read(reinterpret_cast<char*>(data3.data()), num_elements * sizeof(float));
+			fin3.read(reinterpret_cast<char*>(&data3[0]), num_elements * sizeof(float));
 		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
@@ -82,8 +82,7 @@ namespace AS {
 		*/
 	void AudioStream::updateBuffer()
 	{
-		unsigned long i = 0;
-		static unsigned long temp = 0;
+		unsigned long i = 0;		
 		if (temp < data3.size()) {
 			for (i = temp; i < temp + FRAMES_PER_BUFFER; i++)
 			{
@@ -97,6 +96,6 @@ namespace AS {
 		else {
 			temp = 0;
 			i = 0;
-		}
+		}		
 	}
 }

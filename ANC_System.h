@@ -7,6 +7,7 @@
 #include <future>
 #include <atomic>
 #include <chrono>
+#include <mutex>
 #include <boost/circular_buffer.hpp>
 
 #include "config.h"
@@ -26,6 +27,7 @@ namespace ANC {
 
 	class ANC_System
 	{		
+		std::mutex mut;
 		bool t = true;
 		bool f = false;
 
