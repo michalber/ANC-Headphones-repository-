@@ -62,7 +62,7 @@ namespace Adaptive {
 			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
 			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
 
-			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);
+			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);			
 
 #if PLOT_DATA
 			gpErr.window("Error", 10, 10, 700, 500);
@@ -80,6 +80,14 @@ namespace Adaptive {
 			*/
 		~NLMS()
 		{
+		}
+
+		void setParameters(int Taps, double stepsize, double rfactor)
+		{
+			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
+			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
+
+			AdaptiveFilter.setup_nlms(Taps, stepsize, rfactor);
 		}
 		//--------------------------------------------------------------------------------
 		/**

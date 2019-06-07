@@ -14,6 +14,8 @@ namespace ANC {
 		x = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 		d = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 
+		NLMS_Algorithm.setParameters(150, 0.5, 0.001);
+
 		NIB.set_capacity(4 * FRAMES_PER_BUFFER);
 		EIB.set_capacity(4 * FRAMES_PER_BUFFER);
 		MOB.set_capacity(4 * FRAMES_PER_BUFFER);

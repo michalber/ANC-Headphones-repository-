@@ -259,7 +259,7 @@ int main() {
 	AS::AudioStream MusicNoise;
 
 
-	Adaptive::NLMS NLMS_Algorithm;
+	Adaptive::NLMS NLMS_Algorithm(150,0.5,0.002);
 
 	std::vector<float> x;
 	std::vector<float> d;
@@ -298,6 +298,7 @@ int main() {
 
 		//updateOutputBuffer();
 		x = NLMS_Algorithm.getErrorVector();
+		//x = NLMS_Algorithm.getOutVector();
 		for (int j = 0; j < FRAMES_PER_BUFFER; j++)
 			fout.write(reinterpret_cast<const char*>(&x[j]), sizeof(float));	
 
