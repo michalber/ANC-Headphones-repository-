@@ -44,8 +44,8 @@ namespace RLMS {
 		p.eye();		
 		p *= 0.01;
 
-		mu = 0.5;
-		a = 0.01;
+		mu = 0.05;
+		a = 0.001;
 
 		//clear();
 	}
@@ -72,7 +72,7 @@ namespace RLMS {
 		p.eye();		
 		p *= 0.01;
 
-		mu = 0.5;
+		mu = 0.1;
 		a = 0.01;
 	}
 	//--------------------------------------------------------------------------------------------------------------------
@@ -227,7 +227,7 @@ namespace RLMS {
 		return plastSample;
 #endif
 	}
-	double RLMS::processNLMS(double f_d, double f_x, double f_m)
+	float RLMS::processNLMS(float f_d, float f_x, float f_m)
 	{
 	/*
 	MATLAB code for my NLMS
@@ -247,6 +247,8 @@ namespace RLMS {
 		    w(:,n) = w1;
 		end
 	*/
+		//f_x = sin(1. / (1 + exp(-f_x)));
+
 		pushBack(xx, f_x);
 		//f_d -= f_m; 
 
@@ -262,6 +264,7 @@ namespace RLMS {
 
 		return y;
 	}
+
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief Function to clear all data from used vectors

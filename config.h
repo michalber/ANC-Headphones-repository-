@@ -25,6 +25,10 @@
 #define PLOT_DATA 1
 #endif
 //-----------------------------------------------------------------------------------------------
+#ifndef DATA_PATH
+#define DATA_PATH "C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\"
+#endif
+//-----------------------------------------------------------------------------------------------
 
 #endif // !_CONFIG_H
 

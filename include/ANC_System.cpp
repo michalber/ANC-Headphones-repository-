@@ -14,23 +14,23 @@ namespace ANC {
 		x = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 		d = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 
-		NLMS_Algorithm.setParameters(150, 0.5, 0.001);
+		NLMS_Algorithm.setParameters(160, 0.2, 0.001);
 
 		NIB.set_capacity(4 * FRAMES_PER_BUFFER);
 		EIB.set_capacity(4 * FRAMES_PER_BUFFER);
 		MOB.set_capacity(4 * FRAMES_PER_BUFFER);
 		FIN.set_capacity(4 * FRAMES_PER_BUFFER);
 
-		Music.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco.raw");
+		Music.openFile(std::string(DATA_PATH) + "Taco.raw");
 		Music.setUpBuffer(&MOB);
 
-		Noise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\NoiseT.raw");
+		Noise.openFile(std::string(DATA_PATH) + "NoiseT.raw");
 		Noise.setUpBuffer(&NIB);
 
-		MusicNoise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco+n.raw");
+		MusicNoise.openFile(std::string(DATA_PATH) + "Taco+n.raw");
 		MusicNoise.setUpBuffer(&EIB);
 
-		FilteredNoise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\fnoise.raw");
+		FilteredNoise.openFile(std::string(DATA_PATH) + "fnoise.raw");
 		FilteredNoise.setUpBuffer(&FIN);
 
 		//AudioOutput.setUpBuffer(&MusicOutputBuffer, &newMusicSampleAvailable);
@@ -207,7 +207,7 @@ namespace ANC {
 		*/
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				std::this_thread::sleep_for(std::chrono::microseconds(500));
 
 				//if (newNoiseVectorAvailable.load() == true &&
 				//	newErrorVectorAvailable.load() == true)
@@ -219,7 +219,7 @@ namespace ANC {
 					//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);																								
 
-					//NLMS_Algorithm.updateNLMS(x, d);					
+					NLMS_Algorithm.updateNLMS(x, d, d);					
 
 					newNoiseVectorAvailable.store(false, std::memory_order_release);
 					newErrorVectorAvailable.store(false, std::memory_order_release);
@@ -249,8 +249,8 @@ namespace ANC {
 				std::this_thread::sleep_for(std::chrono::microseconds(1000));				
 
 				if ((MOB.size() % FRAMES_PER_BUFFER) == 0 && !MOB.full()) {
-					Music.updateBuffer();
-					//putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());					
+					//Music.updateBuffer();
+					putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());					
 				}
 			}
 		});
@@ -281,20 +281,20 @@ namespace ANC {
 
 					if (newNoiseSampleAvailable.load(std::memory_order_acquire) == true &&
 						newNoiseVectorAvailable.load(std::memory_order_acquire) == false) {
-
-						//x = getCircBufferAsVec(&NIB);
+						x.clear();
+						x = getCircBufferAsVec(&NIB);
 						//NoiseInputBuffer.RingBuffer_Clear();
-						x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+						//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 
 						newNoiseVectorAvailable.store(true, std::memory_order_release);
 						newNoiseSampleAvailable.store(false, std::memory_order_release);
 					}
 					if (newErrorSampleAvailable.load(std::memory_order_acquire) == true &&
 						newErrorVectorAvailable.load(std::memory_order_acquire) == false) {
-
-						//d = getCircBufferAsVec(&EIB);
+						d.clear();
+						d = getCircBufferAsVec(&EIB);
 						//ErrorInputBuffer.RingBuffer_Clear();
-						d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+						//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 
 						newErrorVectorAvailable.store(true, std::memory_order_release);
 						newErrorSampleAvailable.store(false, std::memory_order_release);

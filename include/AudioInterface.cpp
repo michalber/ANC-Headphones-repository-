@@ -65,7 +65,10 @@ namespace AI {
 			NULL, /* no input */
 			&outputParameters,
 			SAMPLE_RATE,
+
 			FRAMES_PER_BUFFER,
+			//paFramesPerBufferUnspecified,
+
 			paClipOff,      /* we won't output out of range samples so don't bother clipping them */
 			&AudioInterface::paCallback,
 			this            /* Using 'this' for userData so we can cast to Sine* in paCallback method */
@@ -187,8 +190,8 @@ namespace AI {
 
 		//std::cout << "Pobieram próbki: " << temp << std::endl;
 
-		//if ((OB->size() % FRAMES_PER_BUFFER) == 0) {
-			for (i = 0; i < FRAMES_PER_BUFFER; i++)
+		if (OB->size() >= framesPerBuffer) {
+			for (i = 0; i < framesPerBuffer; i++)
 			{
 				/*
 					We just simply add new data to outputBuffer
@@ -212,7 +215,7 @@ namespace AI {
 				//right_phase += 3; /* higher pitch so we can distinguish left and right. */
 				//if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
 			}
-		//}
+		}
 		//temp = i;
 
 

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <mutex>
 #include <boost/circular_buffer.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 
 #include "config.h"
 #include "ring_buffer.h"
@@ -54,6 +55,10 @@ namespace ANC {
 		boost::circular_buffer<float> EIB;
 		boost::circular_buffer<float> MOB;	
 		boost::circular_buffer<float> FIN;
+
+		//boost::lockfree::spsc_queue<float, boost::lockfree::capacity<FRAMES_PER_BUFFER>> NIB;
+		//boost::lockfree::spsc_queue<float, boost::lockfree::capacity<FRAMES_PER_BUFFER>> EIB;
+		//boost::lockfree::spsc_queue<float, boost::lockfree::capacity<FRAMES_PER_BUFFER>> MOB;
 
 		AI::AudioInterface AudioOutput;
 		Handler::ScopedPaHandler paInit;

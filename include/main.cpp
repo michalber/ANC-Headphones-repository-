@@ -219,9 +219,8 @@ std::vector<float> getCircBufferAsVec(boost::circular_buffer<float> *buff)
 {
 	/*
 	max time: 1ms
-	*/
-	//temp.fill(0);
-	static std::vector<float> temp(FRAMES_PER_BUFFER);
+	*/	
+	std::vector<float> temp(FRAMES_PER_BUFFER);
 	temp.clear();
 	//if (buff->size() >= FRAMES_PER_BUFFER) {
 	for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
@@ -242,6 +241,7 @@ void putVecIntoCircBuffer(boost::circular_buffer<float> *buff, std::vector<float
 	}
 }
 
+#include "../ANC-Headphones-repository-/RLMS.h"
 
 int main() {
 	//ANC::ANC_System init;
@@ -259,7 +259,9 @@ int main() {
 	AS::AudioStream MusicNoise;
 
 
-	Adaptive::NLMS NLMS_Algorithm(150,0.5,0.002);
+	Adaptive::NLMS NLMS_Algorithm(150, 0.1, 0.001);
+	RLMS::RLMS RLMS(400,1);
+	
 
 	std::vector<float> x;
 	std::vector<float> d;
@@ -268,17 +270,19 @@ int main() {
 	EIB.set_capacity(FRAMES_PER_BUFFER);
 	MOB.set_capacity(FRAMES_PER_BUFFER);
 
-	Music.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco.raw");
+	Music.openFile(std::string(DATA_PATH) + "Taco.raw");
 	Music.setUpBuffer(&MOB);
 
-	Noise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\NoiseT.raw");
+	//Noise.openFile(std::string(DATA_PATH) + "NoiseT.raw");
+	Noise.openFile(std::string(DATA_PATH) + "x.raw");
 	Noise.setUpBuffer(&NIB);
 
-	MusicNoise.openFile("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Taco+n.raw");
+	//MusicNoise.openFile(std::string(DATA_PATH) + "Sin+n.raw");
+	MusicNoise.openFile(std::string(DATA_PATH) + "d.raw");
 	MusicNoise.setUpBuffer(&EIB);
 
 
-
+	auto start = std::chrono::system_clock::now();
 	for (int i = 0; i < 1500; i++) {
 
 		//updateNoiseBuffer();
@@ -292,15 +296,18 @@ int main() {
 		//loadNewNoiseVector();
 		x = getCircBufferAsVec(&NIB);
 		d = getCircBufferAsVec(&EIB);
-
-		//processDataWithRLMS();
-		NLMS_Algorithm.updateNLMS(d, x, d);
-
+	
+		//NLMS_Algorithm.updateNLMS(d, x, d);
 		//updateOutputBuffer();
-		x = NLMS_Algorithm.getErrorVector();
-		//x = NLMS_Algorithm.getOutVector();
+		//x = NLMS_Algorithm.getErrorVector();
+		//std::vector<float> temp = NLMS_Algorithm.getOutVector();
+		
+		std::vector<float> temp;
+		for (int k = 0; k < FRAMES_PER_BUFFER; k++) {
+			temp.push_back(RLMS.processNLMS(d[k], x[k], x[k]));
+		}
 		for (int j = 0; j < FRAMES_PER_BUFFER; j++)
-			fout.write(reinterpret_cast<const char*>(&x[j]), sizeof(float));	
+			fout.write(reinterpret_cast<const char*>(&temp[j]), sizeof(float));
 
 		x.clear();
 		d.clear();
@@ -309,8 +316,11 @@ int main() {
 		//NLMS_Algorithm.drawData(x, d, "x", "d");
 		//NLMS_Algorithm.drawData();
 	}
+	auto end = std::chrono::system_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	cout << duration.count() / 1500 << endl;
 	fout.close();
 
-	std::cin.ignore();
+	//std::cin.ignore();
 	return 0;
 }

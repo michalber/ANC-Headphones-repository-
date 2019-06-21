@@ -19,7 +19,7 @@ namespace RLMS {
 		double pLambda;
 		int pNumOfTaps;
 		double plastSample;
-		double y, e, mu, a;
+		float y, e, mu, a;
 
 		colvec pError;
 		colvec pY;
@@ -44,7 +44,7 @@ namespace RLMS {
 		bool setLambda(double);
 		bool setNumOfTaps(int);
 		double process(double, double, double);
-		double processNLMS(double, double, double);
+		float processNLMS(float, float, float);
 		void clear();
 
 	private:

@@ -38,8 +38,10 @@ namespace Adaptive {
 
 		NLMS() :pNumOfTaps(60), stepSize(0.5), RFactor(0.001)
 		{
-			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
-			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
+			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
+			e = arma::vec(FRAMES_PER_BUFFER);  // Err sig
+			y.fill(1e-6);
+			e.fill(1e-6);
 
 			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);
 
@@ -59,8 +61,10 @@ namespace Adaptive {
 			*/
 		NLMS(int Taps, double stepsize, double rfactor) :pNumOfTaps(Taps), stepSize(stepsize), RFactor(rfactor)
 		{
-			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
-			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
+			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
+			e = arma::vec(FRAMES_PER_BUFFER);  // Err sig
+			y.fill(1e-6);
+			e.fill(1e-6);
 
 			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);			
 
@@ -84,8 +88,10 @@ namespace Adaptive {
 
 		void setParameters(int Taps, double stepsize, double rfactor)
 		{
-			y = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Model sig	
-			e = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);  // Err sig
+			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
+			e = arma::vec(FRAMES_PER_BUFFER);  // Err sig
+			y.fill(1e-6);
+			e.fill(1e-6);
 
 			AdaptiveFilter.setup_nlms(Taps, stepsize, rfactor);
 		}
@@ -117,11 +123,12 @@ namespace Adaptive {
 		}
 		void updateNLMS(std::vector<float> d, std::vector<float> x, std::vector<float> m)
 		{
-			std::lock_guard<std::mutex> lk(mut);
+			//std::lock_guard<std::mutex> lk(mut);
 			y_v.clear();
 			e_v.clear();
 			for (int n = 0; n < FRAMES_PER_BUFFER; n++)
 			{
+				//x[n] = sin(1. / (1 + exp(-x[n])));
 				// Apply adaptiv filter
 				y_v.push_back(AdaptiveFilter(x[n]));
 
