@@ -317,7 +317,8 @@ int main() {
 //		std::vector<float> temp;
 //		for (int k = 0; k < FRAMES_PER_BUFFER; k++) {
 //			//temp.push_back(RLMS.processNLMS(d[k], x[k], x[k]));		
-//			MOB.push_front(RLMS.processNLMS(d[k], x[k], x[k]));
+//			//MOB.push_front(RLMS.processNLMS(d[k], x[k], x[k]));
+//			Music.updateBufferOnce();
 //		}
 //		
 //		//for (int j = 0; j < FRAMES_PER_BUFFER; j++)

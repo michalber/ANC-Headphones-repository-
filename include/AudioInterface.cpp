@@ -69,9 +69,9 @@ namespace AI {
 			FRAMES_PER_BUFFER,
 			//paFramesPerBufferUnspecified,
 
-			//paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+			paClipOff,      /* we won't output out of range samples so don't bother clipping them */
 			//paDitherOff,
-			paNoFlag,
+			//paNoFlag,
 
 			&AudioInterface::paCallback,
 			this            /* Using 'this' for userData so we can cast to AudioInterface* in paCallback method */
@@ -165,6 +165,10 @@ namespace AI {
 	{
 		OB = x;
 	}
+	void AudioInterface::setUpQueue(boost::lockfree::spsc_queue<float>* x)
+	{
+		outQueue = x;
+	}
 
 	//--------------------------------------------------------------------------------
 	/**
@@ -199,7 +203,7 @@ namespace AI {
 
 		//std::cout << "Pobieram próbki: " << temp << std::endl;
 
-		if ((OB->size() % framesPerBuffer) == 0) {
+		if ((OB->size() >= framesPerBuffer)) {
 			for (i = 0; i < framesPerBuffer; i++)
 			{
 				/*
@@ -207,12 +211,13 @@ namespace AI {
 				*/		
 				if (//OB->size() > FRAMES_PER_BUFFER && 
 					!OB->empty()) {
-					*out++ = OB->back();
+					*out++ = OB->back();					
 					OB->pop_back();
 				}
-				else *out++ = 0;
+				else return paComplete;
 			}
 		}		
+
 			nextVecReady = true;
 
 		return paContinue;

@@ -4,7 +4,7 @@
 
 #include <atomic>
 #include <boost/circular_buffer.hpp>
-
+#include <boost/lockfree/spsc_queue.hpp>
 
 #include "portaudio.h"
 #include "config.h"
@@ -22,8 +22,9 @@ namespace AI {
 	{
 		PaStream *stream;
 		//RingBuffer::RingBuffer<float> *OutputBuffer = NULL;
-		boost::circular_buffer<float> *OB = NULL;
-		std::atomic<int> *dataReaded = NULL;
+		boost::circular_buffer<float> *OB = nullptr;
+		boost::lockfree::spsc_queue<float> *outQueue = nullptr;
+		std::atomic<int> *dataReaded = nullptr;
 		bool nextVecReady{ false };
 		char message[20];
 
@@ -38,6 +39,7 @@ namespace AI {
 		bool getNextVecFlag();
 		void setUpBuffer(RingBuffer::RingBuffer<float> *, std::atomic<int> *);
 		void setUpBuffer(boost::circular_buffer<float> *);
+		void setUpQueue(boost::lockfree::spsc_queue<float>* x);
 
 	private:
 		int paCallbackMethod(const void *, void *,unsigned long, const PaStreamCallbackTimeInfo*,const PaStreamCallbackFlags);

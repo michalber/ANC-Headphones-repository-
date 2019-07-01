@@ -14,15 +14,12 @@ namespace ANC {
 		x = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 		d = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 
-		//Set up NLMS algo.
-		NLMS_Algorithm.setParameters(300, 0.05, 0.001);
-		NLMS_Algorithm.setUpBuffer(&MOB);
-
 		//Set up Circ.Buffers size
 		NIB.set_capacity(2 * FRAMES_PER_BUFFER);
 		EIB.set_capacity(2 * FRAMES_PER_BUFFER);
 		MOB.set_capacity(2 * FRAMES_PER_BUFFER);
 		NOB.set_capacity(2 * FRAMES_PER_BUFFER);
+		outQueue = new boost::lockfree::spsc_queue<float>(8 * FRAMES_PER_BUFFER);
 
 		//create music data streams and assign them to Circ. Buffers
 		Music.openFile(std::string(DATA_PATH) + "Taco.raw");
@@ -34,9 +31,14 @@ namespace ANC {
 		MusicNoise.openFile(std::string(DATA_PATH) + "Taco+n.raw");
 		MusicNoise.setUpBuffer(&EIB);
 
-		
+		//Set up NLMS algo.
+		NLMS_Algorithm.setParameters(300, 0.05, 0.001);
+		NLMS_Algorithm.setUpBuffer(&NOB);
+		NLMS_Algorithm.setUpQueue(outQueue);
+
 		//Assign Buffer to output music stream 
 		AudioOutput.setUpBuffer(&MOB);
+		AudioOutput.setUpQueue(outQueue);
 
 		if (paInit.result() != paNoError) {
 			fprintf(stderr, "An error occured while using the portaudio stream\n");
@@ -55,10 +57,10 @@ namespace ANC {
 		//Launch threads
 		updateNoiseBuffer();
 		//updateErrorBuffer();
-		loadNewNoiseVector();
+		//loadNewNoiseVector();
 		//loadNewErrorVector();
-		processDataWithRLMS();
-		updateOutputBuffer();
+		//processDataWithRLMS();
+		//updateOutputBuffer();
 #if PLOT_DATA
 		drawNLMSData();
 #endif
@@ -108,45 +110,81 @@ namespace ANC {
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(50));
+				//std::this_thread::sleep_for(std::chrono::microseconds(20));
+				
+				auto start = std::chrono::high_resolution_clock::now();
+				
+				//std::lock_guard<std::mutex> lk(mut);				
+				//Noise.updateBuffer(1);
+				Music.updateBufferOnce();
+				//MOB.push_front(arma::randn());
 				
 
-				if ((NIB.size() % FRAMES_PER_BUFFER) == 0 &&
-					!NIB.full() &&
-					newNoiseSampleAvailable == false
-					)
-				{										
-					Noise.updateBuffer();
-					newNoiseSampleAvailable = true;
-				}		
+				auto end = std::chrono::high_resolution_clock::now();
+				auto elapsed = end - start;
+				auto timeToWait = std::chrono::microseconds(20) - elapsed;
+				if (timeToWait > std::chrono::microseconds::zero())
+				{
+					std::this_thread::sleep_until(start + timeToWait);
+					//Sleep(timeToWait.count());
+				}
 
-				if ((EIB.size() % FRAMES_PER_BUFFER) == 0 &&
+				//Music.updateBuffer(1);
+
+				//std::this_thread::sleep_until(x);
+
+				//if ((NIB.size() % FRAMES_PER_BUFFER) == 0 &&
+				//	!NIB.full() //&&
+				//	//newNoiseSampleAvailable == false
+				//	)
+				//{										
+				//	Noise.updateBuffer();
+				//	newNoiseSampleAvailable = true;
+				//}		
+
+				/*if ((EIB.size() % FRAMES_PER_BUFFER) == 0 &&
 					!EIB.full() &&
 					newErrorSampleAvailable == false
 					)
 				{
 					MusicNoise.updateBuffer();
 					newErrorSampleAvailable = true;
-				}
+				}*/
 			}
 		});
 		t.detach();
 	}
+
 	void ANC_System::updateErrorBuffer()
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
+				//std::this_thread::sleep_for(std::chrono::microseconds(20));
+				//auto x = std::chrono::high_resolution_clock::now() + std::chrono::microseconds(22);
 
+				auto start = std::chrono::high_resolution_clock::now();
 
-				if ((EIB.size() % FRAMES_PER_BUFFER) == 0 &&
-					!EIB.full() //&&
-					//newNoiseSampleAvailable == false
-					)
+				//std::lock_guard<std::mutex> lk(mut);
+				MusicNoise.updateBuffer(1);
+				
+
+				auto end = std::chrono::high_resolution_clock::now();
+				auto elapsed = end - start;
+				auto timeToWait = std::chrono::microseconds(20) - elapsed;
+				if (timeToWait > std::chrono::milliseconds::zero())
 				{
-					MusicNoise.updateBuffer();					
-					newErrorSampleAvailable = true;
+					//std::this_thread::sleep_for(timeToWait);
+					Sleep(timeToWait.count());
 				}
+
+				//if ((EIB.size() % FRAMES_PER_BUFFER) == 0 &&
+				//	!EIB.full() //&&
+				//	//newNoiseSampleAvailable == false
+				//	)
+				//{
+				//	MusicNoise.updateBuffer();					
+				//	newErrorSampleAvailable = true;
+				//}
 
 			}
 		});
@@ -167,7 +205,7 @@ namespace ANC {
 				//std::this_thread::sleep_for(std::chrono::microseconds(1));
 
 				//std::lock_guard<std::mutex> lk(mut);
-
+				auto start = std::chrono::high_resolution_clock::now();
 
 				if (newNoiseVectorAvailable == true &&
 					newErrorVectorAvailable == true) {
@@ -177,12 +215,21 @@ namespace ANC {
 					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);																								
 					
 					//NLMS_Algorithm.updateNLMSFilter(d, x);
+					cout << "NLMS\n";
 					NLMS_Algorithm.updateNLMS(d, x);
 
 					newNoiseVectorAvailable = false;
 					newErrorVectorAvailable = false;
 
 					updateReady = false;
+				}
+
+				auto end = std::chrono::high_resolution_clock::now();
+				auto elapsed = end - start;
+				auto timeToWait = std::chrono::microseconds(10) - elapsed;
+				if (timeToWait > std::chrono::milliseconds::zero())
+				{
+					std::this_thread::sleep_for(timeToWait);
 				}
 			}
 		});
@@ -205,15 +252,23 @@ namespace ANC {
 			while (!StopThreads) {
 				//nextStartTime = currentStartTime + std::chrono::microseconds(500);				
 				//std::this_thread::sleep_until(nextStartTime);
-				std::this_thread::sleep_for(std::chrono::microseconds(50));	
-
+				//std::this_thread::sleep_for(std::chrono::microseconds(230));	
+				auto start = std::chrono::high_resolution_clock::now();
 				
 				if (AudioOutput.getNextVecFlag()) {
 					//if ((MOB.size() % FRAMES_PER_BUFFER) == 0 && !MOB.full()) {
 						//Music.updateBuffer();
 						//putVecIntoCircBuffer(&MOB, getCircBufferAsVector(&NOB));
-						putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());
+						//putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());
 					//}
+				}
+
+				auto end = std::chrono::high_resolution_clock::now();
+				auto elapsed = end - start;
+				auto timeToWait = std::chrono::microseconds(100) - elapsed;
+				if (timeToWait > std::chrono::milliseconds::zero())
+				{
+					std::this_thread::sleep_for(timeToWait);
 				}
 			}
 		});
@@ -231,11 +286,19 @@ namespace ANC {
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				//std::this_thread::sleep_for(std::chrono::milliseconds(500));
+				auto start = std::chrono::high_resolution_clock::now();
+
+				std::lock_guard<std::mutex> lk(mut);
+				//NLMS_Algorithm.drawData(x, d, "x", "d");
+				NLMS_Algorithm.drawData();
+
+				auto end = std::chrono::high_resolution_clock::now();
+				auto elapsed = end - start;
+				auto timeToWait = std::chrono::milliseconds(500) - elapsed;
+				if (timeToWait > std::chrono::microseconds::zero())
 				{
-					//std::lock_guard<std::mutex> lk(mut);
-					//NLMS_Algorithm.drawData(x, d, "x", "d");
-					NLMS_Algorithm.drawData();
+					std::this_thread::sleep_for(timeToWait);
 				}
 			}
 		});
@@ -253,12 +316,14 @@ namespace ANC {
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(50));
+				//std::this_thread::sleep_for(std::chrono::microseconds(1000));
+				auto start = std::chrono::high_resolution_clock::now();
 
 				//std::lock_guard<std::mutex> lk(mut);
 
-				if (newNoiseSampleAvailable == true &&
-					newNoiseVectorAvailable == false) {
+				//if (newNoiseSampleAvailable == true &&
+				//	newNoiseVectorAvailable == false) {
+				if(NIB.size() >= FRAMES_PER_BUFFER) {
 
 					x.clear();
 					x = getCircBufferAsVec(&NIB);
@@ -269,8 +334,9 @@ namespace ANC {
 					newNoiseSampleAvailable = false;
 				}
 
-				if (newErrorSampleAvailable == true &&
-					newErrorVectorAvailable == false) {
+				//if (newErrorSampleAvailable == true &&
+				//	newErrorVectorAvailable == false) {
+				if(EIB.size() >= FRAMES_PER_BUFFER) {
 
 					d.clear();
 					d = getCircBufferAsVec(&EIB);
@@ -287,6 +353,15 @@ namespace ANC {
 					updateReady = true;
 				}
 				else updateReady = false;
+
+
+				auto end = std::chrono::high_resolution_clock::now();
+				auto elapsed = end - start;
+				auto timeToWait = std::chrono::microseconds(100) - elapsed;
+				if (timeToWait > std::chrono::microseconds::zero())
+				{
+					std::this_thread::sleep_for(timeToWait);
+				}
 			}
 		});
 		t.detach();

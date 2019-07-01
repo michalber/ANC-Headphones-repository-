@@ -15,21 +15,21 @@ namespace AS {
 
 	class AudioStream
 	{
-		std::ifstream fin3;		
-		boost::circular_buffer<float> *musicStream;
+		std::ifstream filein;		
+		boost::circular_buffer<float> *musicStream;		
 		size_t num_elements;
 		unsigned long temp = 0;
 	public:
-		std::vector<float> data3;
+		std::vector<float> data;
 
 	public:
 		AudioStream();
 		AudioStream(std::string);
 		~AudioStream();
-		void openFile(std::string);
-		void setUpBuffer(RingBuffer::RingBuffer<float> *);
+		void openFile(std::string);		
 		void setUpBuffer(boost::circular_buffer<float> *);
-		void updateBuffer();
+		void updateBuffer(int size = FRAMES_PER_BUFFER);
+		void updateBufferOnce();
 	};
 }
 

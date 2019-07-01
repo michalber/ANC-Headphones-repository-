@@ -18,19 +18,19 @@ namespace AS {
 		*/
 	AudioStream::AudioStream(std::string path)
 	{
-		fin3 = std::ifstream(path, std::ios::binary | std::ios::in);
-		if (!fin3)
+		filein = std::ifstream(path, std::ios::binary | std::ios::in);
+		if (!filein)
 		{
 			std::cout << " Error, Couldn't find the file" << "\n";
 		}
 		else {
 
-			fin3.seekg(0, std::ios::end);
-			num_elements = fin3.tellg() / sizeof(float);
-			fin3.seekg(0, std::ios::beg);
+			filein.seekg(0, std::ios::end);
+			num_elements = filein.tellg() / sizeof(float);
+			filein.seekg(0, std::ios::beg);
 
-			data3 = std::vector<float>(num_elements);
-			fin3.read(reinterpret_cast<char*>(&data3[0]), num_elements * sizeof(float));
+			data = std::vector<float>(num_elements);
+			filein.read(reinterpret_cast<char*>(&data[0]), num_elements * sizeof(float));
 		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
@@ -45,19 +45,19 @@ namespace AS {
 
 	void AudioStream::openFile(std::string path)
 	{
-		fin3 = std::ifstream(path, std::ios::binary | std::ios::in);
-		if (!fin3)
+		filein = std::ifstream(path, std::ios::binary | std::ios::in);
+		if (!filein)
 		{
 			std::cout << " Error, Couldn't find the file" << "\n";
 		}
 		else {
 
-			fin3.seekg(0, std::ios::end);
-			num_elements = fin3.tellg() / sizeof(float);
-			fin3.seekg(0, std::ios::beg);
+			filein.seekg(0, std::ios::end);
+			num_elements = filein.tellg() / sizeof(float);
+			filein.seekg(0, std::ios::beg);
 
-			data3 = std::vector<float>(num_elements);
-			fin3.read(reinterpret_cast<char*>(&data3[0]), num_elements * sizeof(float));
+			data = std::vector<float>(num_elements);
+			filein.read(reinterpret_cast<char*>(&data[0]), num_elements * sizeof(float));
 		}
 	}
 	//--------------------------------------------------------------------------------------------------------------------
@@ -76,14 +76,14 @@ namespace AS {
 			@author	Micha³ Berdzik
 			@version 0.0.1 19-04-2019
 		*/
-	void AudioStream::updateBuffer()
+	void AudioStream::updateBuffer(int size)
 	{
 		unsigned long i = 0;		
-		if (temp < data3.size()) {
-			for (i = temp; i < temp + FRAMES_PER_BUFFER; i++)
+		if (temp < data.size()) {
+			for (i = temp; i < temp + size; i++)
 			{
 				if(!musicStream->full())
-					musicStream->push_front(data3[i]);
+					musicStream->push_front(data[i]);
 				else break;
 			}
 			temp = i;
@@ -92,5 +92,15 @@ namespace AS {
 			temp = 0;
 			i = 0;
 		}		
+	}
+	void AudioStream::updateBufferOnce()
+	{
+		if (temp < data.size()) {			
+			if (!musicStream->full())
+				musicStream->push_front(data[temp++]);							
+		}
+		else {
+			temp = 0;			
+		}
 	}
 }

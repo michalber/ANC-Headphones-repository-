@@ -7,6 +7,7 @@
 #include <future>
 #include <atomic>
 #include <chrono>
+#include <windows.h>
 #include <mutex>
 #include <condition_variable>
 #include <boost/circular_buffer.hpp>
@@ -52,6 +53,7 @@ namespace ANC {
 		boost::circular_buffer<float> EIB;	//Error Input Buffer
 		boost::circular_buffer<float> MOB;	//Music Output Buffer
 		boost::circular_buffer<float> NOB;	//NLMS Output Buffer
+		boost::lockfree::spsc_queue<float> *outQueue;
 
 		AI::AudioInterface AudioOutput;
 		Handler::ScopedPaHandler paInit;

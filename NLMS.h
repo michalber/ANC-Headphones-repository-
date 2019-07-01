@@ -6,6 +6,7 @@
 #include <sigpack.h>
 #include <mutex>
 #include <boost/circular_buffer.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 #include "config.h"
 //-----------------------------------------------------------------------------------------------
 
@@ -44,6 +45,7 @@ namespace Adaptive {
 		arma::colvec k, l, temp;
 
 		boost::circular_buffer<float> *OutBuff = NULL;
+		boost::lockfree::spsc_queue<float> *Queue;
 
 #if PLOT_DATA
 		sp::gplot gpErr;
@@ -169,7 +171,7 @@ namespace Adaptive {
 
 				//Add new data to buffer
 				if (!OutBuff->full()) {
-					OutBuff->push_front(y(n));
+					//OutBuff->push_front(y(n));
 					//OutBuff->push_front(d(n));
 				}
 
@@ -181,7 +183,7 @@ namespace Adaptive {
 			}
 		}
 
-		void updateNLMS(arma::vec d, arma::vec x)
+		void updateNLMS(arma::vec &d, arma::vec &x)
 		{
 			/*
 			MATLAB code for my NLMS
@@ -220,8 +222,8 @@ namespace Adaptive {
 				//update output buffer
 				if (!OutBuff->full()) {
 					//OutBuff->push_front(pY(0,0));
-					//OutBuff->push_front(d(n));
-				}
+					//OutBuff->push_front(d(n));			
+				}				
 
 				//update filter weights
 				l = xx_t * xx;
@@ -328,6 +330,11 @@ namespace Adaptive {
 		void setUpBuffer(boost::circular_buffer<float>* x)
 		{			
 			OutBuff = x;
+		}
+
+		void setUpQueue(boost::lockfree::spsc_queue<float> *x)
+		{
+			Queue = x;
 		}
 	};
 }
