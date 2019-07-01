@@ -9,7 +9,7 @@ namespace AI {
 			@author	Micha³ Berdzik
 			@version 0.0.1 18-05-2019
 		*/
-	AudioInterface::AudioInterface() : stream(0), left_phase(0), right_phase(0)
+	AudioInterface::AudioInterface() : stream(0)
 	{
 #if DEBUG
 		sprintf_s(message, "AudioInterface Initialized");
@@ -69,9 +69,12 @@ namespace AI {
 			FRAMES_PER_BUFFER,
 			//paFramesPerBufferUnspecified,
 
-			paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+			//paClipOff,      /* we won't output out of range samples so don't bother clipping them */
+			//paDitherOff,
+			paNoFlag,
+
 			&AudioInterface::paCallback,
-			this            /* Using 'this' for userData so we can cast to Sine* in paCallback method */
+			this            /* Using 'this' for userData so we can cast to AudioInterface* in paCallback method */
 		);
 
 		if (err != paNoError)
@@ -148,9 +151,13 @@ namespace AI {
 		return (err == paNoError);
 	}
 
-	void AudioInterface::setUpBuffer(RingBuffer::RingBuffer<float>* x, std::atomic<int> *y)
+	bool AudioInterface::getNextVecFlag()
 	{
-		OutputBuffer = x;
+		return nextVecReady;
+	}
+
+	void AudioInterface::setUpBuffer(RingBuffer::RingBuffer<float>* x, std::atomic<int> *y)
+	{		
 		dataReaded = y;
 	}
 
@@ -179,6 +186,8 @@ namespace AI {
 										 const PaStreamCallbackTimeInfo* timeInfo,
 										 PaStreamCallbackFlags statusFlags) 
 	{
+		nextVecReady = false;
+
 		float *out = (float*)outputBuffer;
 		unsigned long i = 0;
 
@@ -190,34 +199,21 @@ namespace AI {
 
 		//std::cout << "Pobieram próbki: " << temp << std::endl;
 
-		if (OB->size() >= framesPerBuffer) {
+		if ((OB->size() % framesPerBuffer) == 0) {
 			for (i = 0; i < framesPerBuffer; i++)
 			{
 				/*
 					We just simply add new data to outputBuffer
-				*/
-				//*out++ = Music.data3[i];
-				//*out++ = *(buffer+i);
-				//*out++ = rand();
-				//*out++ = OutputBuffer->RingBuffer_Get();		
-
+				*/		
 				if (//OB->size() > FRAMES_PER_BUFFER && 
 					!OB->empty()) {
 					*out++ = OB->back();
 					OB->pop_back();
 				}
-				//else *out++ = 0;
-
-				//*out++ = sine[left_phase];  /* left */
-				//*out++ = sine[right_phase];  /* right */
-				//left_phase += 1;
-				//if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
-				//right_phase += 3; /* higher pitch so we can distinguish left and right. */
-				//if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
+				else *out++ = 0;
 			}
-		}
-		//temp = i;
-
+		}		
+			nextVecReady = true;
 
 		return paContinue;
 	}

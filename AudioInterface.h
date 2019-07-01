@@ -21,12 +21,10 @@ namespace AI {
 	class AudioInterface
 	{
 		PaStream *stream;
-		RingBuffer::RingBuffer<float> *OutputBuffer = NULL;
+		//RingBuffer::RingBuffer<float> *OutputBuffer = NULL;
 		boost::circular_buffer<float> *OB = NULL;
 		std::atomic<int> *dataReaded = NULL;
-		double *buffer;
-		int left_phase;
-		int right_phase;
+		bool nextVecReady{ false };
 		char message[20];
 
 	public:
@@ -37,6 +35,7 @@ namespace AI {
 		bool close();
 		bool start();
 		bool stop();
+		bool getNextVecFlag();
 		void setUpBuffer(RingBuffer::RingBuffer<float> *, std::atomic<int> *);
 		void setUpBuffer(boost::circular_buffer<float> *);
 

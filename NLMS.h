@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------------------------------
 #include <sigpack.h>
 #include <mutex>
+#include <boost/circular_buffer.hpp>
 #include "config.h"
 //-----------------------------------------------------------------------------------------------
 
@@ -13,20 +14,36 @@ namespace Adaptive {
 
 	class NLMS
 	{
-		std::mutex mut;
-		int pNumOfTaps;
-		double stepSize;
-		double RFactor;
 		// Port Audio FIR filter 
 		sp::FIR_filt<double, double, double> AdaptiveFilter;
 
+		bool processing{ false };
+		std::mutex mut;
+		int pNumOfTaps;
+		float stepSize;
+		float RFactor;
+		float e;
+
 		// Signal vectors
 		arma::vec y;  // Output data
-		arma::vec e;  // Error data
+		//arma::vec e;  // Error data
 		std::vector<float> y_v;  // Output data
 		std::vector<float> e_v;  // Error data
 		float y_f;
 		float e_f;
+
+		arma::colvec pError;
+		arma::colvec pY;		
+		
+		arma::mat p;
+		arma::colvec w1;
+		arma::colvec xx;
+
+		arma::rowvec xx_t;
+		arma::rowvec w1_t;
+		arma::colvec k, l, temp;
+
+		boost::circular_buffer<float> *OutBuff = NULL;
 
 #if PLOT_DATA
 		sp::gplot gpErr;
@@ -38,12 +55,23 @@ namespace Adaptive {
 
 		NLMS() :pNumOfTaps(60), stepSize(0.5), RFactor(0.001)
 		{
-			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
-			e = arma::vec(FRAMES_PER_BUFFER);  // Err sig
-			y.fill(1e-6);
-			e.fill(1e-6);
-
 			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);
+
+			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
+			pError = arma::vec(FRAMES_PER_BUFFER);  // Err sig
+			y.fill(0);
+			pError.fill(0);
+			
+			w1.set_size(pNumOfTaps, 1);
+			w1.zeros();
+			xx.set_size(pNumOfTaps, 1);
+			xx.zeros();
+
+			xx_t.zeros();
+			k.zeros();
+			l.zeros();
+			temp.zeros();
+
 
 #if PLOT_DATA
 			gpErr.window("Error", 10, 10, 700, 500);
@@ -61,12 +89,23 @@ namespace Adaptive {
 			*/
 		NLMS(int Taps, double stepsize, double rfactor) :pNumOfTaps(Taps), stepSize(stepsize), RFactor(rfactor)
 		{
-			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
-			e = arma::vec(FRAMES_PER_BUFFER);  // Err sig
-			y.fill(1e-6);
-			e.fill(1e-6);
+			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);
 
-			AdaptiveFilter.setup_nlms(pNumOfTaps, stepSize, RFactor);			
+			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
+			pError = arma::vec(FRAMES_PER_BUFFER);  // Err sig
+			y.fill(0);
+			pError.fill(0);
+
+			w1.set_size(pNumOfTaps, 1);
+			w1.zeros();
+			xx.set_size(pNumOfTaps, 1);
+			xx.zeros();
+
+			xx_t.zeros();
+			k.zeros();
+			l.zeros();
+			temp.zeros();
+		
 
 #if PLOT_DATA
 			gpErr.window("Error", 10, 10, 700, 500);
@@ -89,9 +128,24 @@ namespace Adaptive {
 		void setParameters(int Taps, double stepsize, double rfactor)
 		{
 			y = arma::vec(FRAMES_PER_BUFFER);  // Model sig	
-			e = arma::vec(FRAMES_PER_BUFFER);  // Err sig
-			y.fill(1e-6);
-			e.fill(1e-6);
+			pError = arma::vec(FRAMES_PER_BUFFER);  // Err sig
+			y.fill(0);
+			pError.fill(0);
+
+			pNumOfTaps = Taps;
+
+			w1.set_size(pNumOfTaps, 1);
+			w1.zeros();
+			xx.set_size(pNumOfTaps, 1);
+			xx.zeros();
+
+			xx_t.zeros();
+			k.zeros();
+			l.zeros();
+			temp.zeros();
+
+			stepSize = stepsize;
+			RFactor = rfactor;
 
 			AdaptiveFilter.setup_nlms(Taps, stepsize, rfactor);
 		}
@@ -105,53 +159,95 @@ namespace Adaptive {
 				@param arma::vec x  -  signal of readed noise
 				@param arma::vec d  -  signal of readed music+noise
 			*/
-		void updateNLMS(arma::vec d, arma::vec x, arma::vec m)
+		void updateNLMSFilter(arma::vec d, arma::vec x)
 		{
-			std::lock_guard<std::mutex> lk(mut);
+			//std::lock_guard<std::mutex> lk(mut);
 			for (int n = 0; n < FRAMES_PER_BUFFER; n++)
 			{
 				// Apply adaptiv filter
 				y(n) = AdaptiveFilter(x(n));
 
-				// Calc error
-				//e(n) = (d(n) - m(n)) - y(n);
-				e(n) = (d(n)) - y(n);
+				//Add new data to buffer
+				if (!OutBuff->full()) {
+					OutBuff->push_front(y(n));
+					//OutBuff->push_front(d(n));
+				}
+
+				// Calc error				
+				pError(n) = (d(n)) - y(n);
 
 				// Update filter
-				AdaptiveFilter.nlms_adapt(e(n));
+				AdaptiveFilter.nlms_adapt(pError(n));
 			}
 		}
+
+		void updateNLMS(arma::vec d, arma::vec x)
+		{
+			/*
+			MATLAB code for my NLMS
+
+				x = x;
+				xx = zeros(M,1);
+				w1 = zeros(M,1);
+				y = zeros(Ns,1);
+				e = zeros(Ns,1);
+
+				for n = 1:Ns
+					xx = [xx(2:M);x(n)];
+					y(n) = w1' * xx;
+					k = mu/(a + xx'*xx);
+					e(n) = d(n) - y(n);
+					w1 = w1 + k * e(n) * xx;
+					w(:,n) = w1;
+				end
+			*/
+			//std::lock_guard<std::mutex> lk(mut);
+			processing = true;
+
+			pY.fill(0);
+			pError.fill(0);
+
+			for (int n = 0; n < FRAMES_PER_BUFFER; n++) {
+
+				pushBack(xx, x(n));
+				xx_t = trans(xx);
+				w1_t = trans(w1);
+
+				//apply adaptive filter to input vector 
+				pY = w1_t * xx;
+				y(n) = pY(0, 0);
+
+				//update output buffer
+				if (!OutBuff->full()) {
+					//OutBuff->push_front(pY(0,0));
+					//OutBuff->push_front(d(n));
+				}
+
+				//update filter weights
+				l = xx_t * xx;
+				k = stepSize / (RFactor + l(0, 0));
+				e = d(n) - pY(0, 0);
+				pError(n) = e;
+				w1 += (k(0, 0) * e) * xx;
+			}
+
+			processing = false;
+		}
+
 		void updateNLMS(std::vector<float> d, std::vector<float> x, std::vector<float> m)
 		{
-			//std::lock_guard<std::mutex> lk(mut);
+			std::lock_guard<std::mutex> lk(mut);
 			y_v.clear();
 			e_v.clear();
 			for (int n = 0; n < FRAMES_PER_BUFFER; n++)
 			{
-				//x[n] = sin(1. / (1 + exp(-x[n])));
-				// Apply adaptiv filter
-				y_v.push_back(AdaptiveFilter(x[n]));
-
-				// Calc error
-				//e(n) = (d(n) - m(n)) - y(n);
-				e_v.push_back((d[n]) - y_v[n]);
-
-				// Update filter
-				AdaptiveFilter.nlms_adapt(e_v[n]);
+				
 			}
 		}
 		double updateNLMS(double d, double x, double m)
 		{
 			std::lock_guard<std::mutex> lk(mut);
-			// Apply adaptiv filter
-			y_f = AdaptiveFilter(x);
-
-			// Calc error
-			//e_f = (d - m) - y_f;
-			e_f = (d) - y_f;
-
-			// Update filter
-			AdaptiveFilter.nlms_adapt(e_f);
+			
 
 			return e_f;
 		}
@@ -167,16 +263,18 @@ namespace Adaptive {
 			*/
 		void drawData()
 		{
-			std::lock_guard<std::mutex> lk(mut);
+			if (!processing) {
+				std::lock_guard<std::mutex> lk(mut);
 #if PLOT_DATA
-			gpErr.plot_add(e, "Error");
-			gpErr.plot_show();
-			gpErr.draw_now();
+				gpErr.plot_add(pError, "Error");
+				gpErr.plot_show();
+				gpErr.draw_now();
 
-			gpOut.plot_add(y, "Out");
-			gpOut.plot_show();
-			gpOut.draw_now();
+				gpOut.plot_add(y, "Out");
+				gpOut.plot_show();
+				gpOut.draw_now();
 #endif
+			}
 		}
 		void drawData(arma::vec xx, arma::vec yy, std::string namex = "", std::string namey ="")
 		{
@@ -194,26 +292,43 @@ namespace Adaptive {
 
 		arma::vec getErrorVec()
 		{
-			std::lock_guard<std::mutex> lk(mut);
-			return e;
+			return pError;
 		}
 		std::vector<float> getErrorVector()
 		{
-			std::lock_guard<std::mutex> lk(mut);
 			return e_v;
 		}
 
 		arma::vec getOutVec()
 		{
-			std::lock_guard<std::mutex> lk(mut);
 			return y;
 		}
 		std::vector<float> getOutVector()
 		{
-			std::lock_guard<std::mutex> lk(mut);
 			return y_v;
 		}
-		//--------------------------------------------------------------------------------
+		//--------------------------------------------------------------------------------------------------------------------
+		/**
+			@brief
+			@author	Micha³ Berdzik
+			@version 0.0.1 28-04-2019
+			@param
+			@retval
+		*/
+		void pushBack(arma::colvec &a, double x)
+		{
+			std::lock_guard<std::mutex> lk(mut);
+			temp = a;
+			for (int i = 0; i < pNumOfTaps - 1; i++) {
+				a(i, 0) = temp(i + 1, 0);
+			}
+			a(pNumOfTaps - 1, 0) = x;
+		}
+
+		void setUpBuffer(boost::circular_buffer<float>* x)
+		{			
+			OutBuff = x;
+		}
 	};
 }
 #endif // !_NLMS_H_ 

@@ -15,8 +15,7 @@ namespace AS {
 
 	class AudioStream
 	{
-		std::ifstream fin3;
-		//RingBuffer::RingBuffer<float> *musicStream;
+		std::ifstream fin3;		
 		boost::circular_buffer<float> *musicStream;
 		size_t num_elements;
 		unsigned long temp = 0;

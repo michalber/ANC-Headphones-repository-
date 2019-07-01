@@ -65,15 +65,11 @@ namespace AS {
 			@brief Function to assign pointer to outer buffer
 			@author	Micha³ Berdzik
 			@version 0.0.1 19-04-2019
-		*/
-	void AudioStream::setUpBuffer(RingBuffer::RingBuffer<float>* x)
+		*/ 
+	void AudioStream::setUpBuffer(boost::circular_buffer<float>* x)
 	{
-		//musicStream = x;
-	} 
-			void AudioStream::setUpBuffer(boost::circular_buffer<float>* x)
-			{
-				musicStream = x;
-			}
+		musicStream = x;
+	}
 	//--------------------------------------------------------------------------------------------------------------------
 		/**
 			@brief Function to load new frame of data to buffer
@@ -86,7 +82,6 @@ namespace AS {
 		if (temp < data3.size()) {
 			for (i = temp; i < temp + FRAMES_PER_BUFFER; i++)
 			{
-				//musicStream->RingBuffer_Put(data3[i]);
 				if(!musicStream->full())
 					musicStream->push_front(data3[i]);
 				else break;

@@ -8,8 +8,8 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <condition_variable>
 #include <boost/circular_buffer.hpp>
-#include <boost/lockfree/spsc_queue.hpp>
 
 #include "config.h"
 #include "ring_buffer.h"
@@ -29,8 +29,6 @@ namespace ANC {
 	class ANC_System
 	{		
 		std::mutex mut;
-		bool t = true;
-		bool f = false;
 
 		int M;
 		float Lambda;
@@ -38,27 +36,22 @@ namespace ANC {
 		arma::vec x;
 		arma::vec d;
 		
-		std::atomic<bool> StopThreads = 0;
+		volatile std::atomic<bool> StopThreads = 0;
 
-		std::atomic_bool newErrorSampleAvailable {false};
-		std::atomic_bool newNoiseSampleAvailable {false};
+		bool newErrorSampleAvailable{ false };
+		bool newNoiseSampleAvailable{ false };
 		std::atomic<int> newMusicSampleAvailable;
-		std::atomic_bool newNoiseVectorAvailable {false};
-		std::atomic_bool newErrorVectorAvailable {false};
-
-		std::atomic<bool> speedUpANCSampling = 0;
+		bool newNoiseVectorAvailable{ false };
+		bool newErrorVectorAvailable{ false };
+		
+		bool updateReady{ false };
 				
-		//RLMS::RLMS RLMS_Algorithm;
 		Adaptive::NLMS NLMS_Algorithm;
 
-		boost::circular_buffer<float> NIB;
-		boost::circular_buffer<float> EIB;
-		boost::circular_buffer<float> MOB;	
-		boost::circular_buffer<float> FIN;
-
-		//boost::lockfree::spsc_queue<float, boost::lockfree::capacity<FRAMES_PER_BUFFER>> NIB;
-		//boost::lockfree::spsc_queue<float, boost::lockfree::capacity<FRAMES_PER_BUFFER>> EIB;
-		//boost::lockfree::spsc_queue<float, boost::lockfree::capacity<FRAMES_PER_BUFFER>> MOB;
+		boost::circular_buffer<float> NIB;	//Noise Input Buffer
+		boost::circular_buffer<float> EIB;	//Error Input Buffer
+		boost::circular_buffer<float> MOB;	//Music Output Buffer
+		boost::circular_buffer<float> NOB;	//NLMS Output Buffer
 
 		AI::AudioInterface AudioOutput;
 		Handler::ScopedPaHandler paInit;
@@ -83,7 +76,9 @@ namespace ANC {
 		void loadNewErrorVector();
 
 		arma::vec getCircBufferAsVec(boost::circular_buffer<float>*);
+		std::vector<float> getCircBufferAsVector(boost::circular_buffer<float>*);
 		void putVecIntoCircBuffer(boost::circular_buffer<float>*, arma::vec);
+		void putVecIntoCircBuffer(boost::circular_buffer<float>*, std::vector<float>);
 	};
 }
 

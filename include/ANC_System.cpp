@@ -14,13 +14,17 @@ namespace ANC {
 		x = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 		d = arma::vec(FRAMES_PER_BUFFER, arma::fill::zeros);
 
-		NLMS_Algorithm.setParameters(160, 0.2, 0.001);
+		//Set up NLMS algo.
+		NLMS_Algorithm.setParameters(300, 0.05, 0.001);
+		NLMS_Algorithm.setUpBuffer(&MOB);
 
-		NIB.set_capacity(4 * FRAMES_PER_BUFFER);
-		EIB.set_capacity(4 * FRAMES_PER_BUFFER);
-		MOB.set_capacity(4 * FRAMES_PER_BUFFER);
-		FIN.set_capacity(4 * FRAMES_PER_BUFFER);
+		//Set up Circ.Buffers size
+		NIB.set_capacity(2 * FRAMES_PER_BUFFER);
+		EIB.set_capacity(2 * FRAMES_PER_BUFFER);
+		MOB.set_capacity(2 * FRAMES_PER_BUFFER);
+		NOB.set_capacity(2 * FRAMES_PER_BUFFER);
 
+		//create music data streams and assign them to Circ. Buffers
 		Music.openFile(std::string(DATA_PATH) + "Taco.raw");
 		Music.setUpBuffer(&MOB);
 
@@ -30,39 +34,9 @@ namespace ANC {
 		MusicNoise.openFile(std::string(DATA_PATH) + "Taco+n.raw");
 		MusicNoise.setUpBuffer(&EIB);
 
-		FilteredNoise.openFile(std::string(DATA_PATH) + "fnoise.raw");
-		FilteredNoise.setUpBuffer(&FIN);
-
-		//AudioOutput.setUpBuffer(&MusicOutputBuffer, &newMusicSampleAvailable);
-		AudioOutput.setUpBuffer(&MOB);
-
-		//RLMS_Algorithm.setLambda(Lambda);
-		//RLMS_Algorithm.setNumOfTaps(M);
-
-		/*updateInputBuffers_Func = std::bind(&ANC_System::updateInputBuffers, this);
-		updateInputBuffers_Thread = Wrapper::ThreadWrapper(updateInputBuffers_Func);		
-
-		processDataWithRLMS_Func = std::bind(&ANC_System::processDataWithRLMS, this);
-		processDataWithRLMS_Thread = Wrapper::ThreadWrapper(processDataWithRLMS_Func);	
-
-		updateOutputBuffer_Func = std::bind(&ANC_System::updateOutputBuffer, this);
-		updateOutputBuffer_Thread = Wrapper::ThreadWrapper(updateOutputBuffer_Func);
-
-#if PLOT_DATA
-		drawNLMSData_Func = std::bind(&ANC_System::drawNLMSData, this);
-		drawNLMSData_Thread = Wrapper::ThreadWrapper(drawNLMSData_Func);
-#endif
-		loadNewNoiseVector_Func = std::bind(&ANC_System::loadNewNoiseVector, this);
-		loadNewNoiseVector_Thread = Wrapper::ThreadWrapper(loadNewNoiseVector_Func);
-
-		loadNewErrorVector_Func = std::bind(&ANC_System::loadNewErrorVector, this);
-		loadNewErrorVector_Thread = Wrapper::ThreadWrapper(loadNewErrorVector_Func);*/
-
-	/*	updateInputBuffers_Thread .detach();   
-		processDataWithRLMS_Thread.detach();
-		updateOutputBuffer_Thread .detach();
-		drawNLMSData_Thread		  .detach();*/
 		
+		//Assign Buffer to output music stream 
+		AudioOutput.setUpBuffer(&MOB);
 
 		if (paInit.result() != paNoError) {
 			fprintf(stderr, "An error occured while using the portaudio stream\n");
@@ -77,8 +51,10 @@ namespace ANC {
 #endif // DEBUG
 			}
 		}				
+
+		//Launch threads
 		updateNoiseBuffer();
-		updateErrorBuffer();
+		//updateErrorBuffer();
 		loadNewNoiseVector();
 		//loadNewErrorVector();
 		processDataWithRLMS();
@@ -97,16 +73,7 @@ namespace ANC {
 	*/
 	ANC_System::ANC_System(float lambda, int m, int bufferSize) //: Lambda(lambda), M(m), BufferSize(bufferSize)
 	{
-		/*NoiseInputBuffer.RingBuffer_SetSize(BufferSize);
-		ErrorInputBuffer.RingBuffer_SetSize(BufferSize);
-		MusicOutputBuffer.RingBuffer_SetSize(BufferSize);
-
-		RLMS_Algorithm.setLambda(Lambda);
-		RLMS_Algorithm.setNumOfTaps(M);*/
-
-		//updateInputBuffers_Thread = thread{ &ANC_System::updateInputBuffers_Func,this };
-		//processDataWithRLMS_Thread = thread{ &ANC_System::processDataWithRLMS_Func,this };
-		//updateOutputBuffer_Thread = thread{ &ANC_System::updateOutputBuffer_Func,this };
+		
 	}
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
@@ -141,26 +108,26 @@ namespace ANC {
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
+				std::this_thread::sleep_for(std::chrono::microseconds(50));
 				
 
 				if ((NIB.size() % FRAMES_PER_BUFFER) == 0 &&
-					!NIB.full() //&&
-					//newErrorSampleAvailable == false
+					!NIB.full() &&
+					newNoiseSampleAvailable == false
 					)
 				{										
 					Noise.updateBuffer();
-					newNoiseSampleAvailable.store(true, std::memory_order_release);
-				}				
+					newNoiseSampleAvailable = true;
+				}		
 
-		
-				//if ((FIN.size() % FRAMES_PER_BUFFER) == 0 &&
-				//	!FIN.full() //&&
-				//	//newNoiseSampleAvailable == false
-				//	)
-				//{
-				//	FilteredNoise.updateBuffer();
-				//}
+				if ((EIB.size() % FRAMES_PER_BUFFER) == 0 &&
+					!EIB.full() &&
+					newErrorSampleAvailable == false
+					)
+				{
+					MusicNoise.updateBuffer();
+					newErrorSampleAvailable = true;
+				}
 			}
 		});
 		t.detach();
@@ -178,16 +145,9 @@ namespace ANC {
 					)
 				{
 					MusicNoise.updateBuffer();					
-					newErrorSampleAvailable.store(true, std::memory_order_release);
+					newErrorSampleAvailable = true;
 				}
 
-				//if ((FIN.size() % FRAMES_PER_BUFFER) == 0 &&
-				//	!FIN.full() //&&
-				//	//newNoiseSampleAvailable == false
-				//	)
-				//{
-				//	FilteredNoise.updateBuffer();
-				//}
 			}
 		});
 		t.detach();
@@ -202,28 +162,28 @@ namespace ANC {
 	*/
 	void ANC_System::processDataWithRLMS()
 	{
-		/*
-		max time = 4.1ms
-		*/
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(500));
+				//std::this_thread::sleep_for(std::chrono::microseconds(1));
 
-				//if (newNoiseVectorAvailable.load() == true &&
-				//	newErrorVectorAvailable.load() == true)
-				//{
-				if(newNoiseVectorAvailable.load(std::memory_order_acquire) &&
-				   newErrorVectorAvailable.load(std::memory_order_acquire)) {
-					/*NLMS_Algorithm.updateNLMS(NoiseInputBuffer.RingBuffer_GetBufferAsVec(),
-											  ErrorInputBuffer.RingBuffer_GetBufferAsVec());*/	
+				//std::lock_guard<std::mutex> lk(mut);
+
+
+				if (newNoiseVectorAvailable == true &&
+					newErrorVectorAvailable == true) {
+				//if(updateReady == true) {
+
 					//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);																								
+					
+					//NLMS_Algorithm.updateNLMSFilter(d, x);
+					NLMS_Algorithm.updateNLMS(d, x);
 
-					NLMS_Algorithm.updateNLMS(x, d, d);					
+					newNoiseVectorAvailable = false;
+					newErrorVectorAvailable = false;
 
-					newNoiseVectorAvailable.store(false, std::memory_order_release);
-					newErrorVectorAvailable.store(false, std::memory_order_release);
-				}				
+					updateReady = false;
+				}
 			}
 		});
 		t.detach();
@@ -242,114 +202,198 @@ namespace ANC {
 		//std::chrono::steady_clock::time_point nextStartTime{ currentStartTime };
 
 		std::thread t([&] {	
-		//std::async(std::launch::async, [&] {
 			while (!StopThreads) {
 				//nextStartTime = currentStartTime + std::chrono::microseconds(500);				
 				//std::this_thread::sleep_until(nextStartTime);
-				std::this_thread::sleep_for(std::chrono::microseconds(1000));				
+				std::this_thread::sleep_for(std::chrono::microseconds(50));	
 
-				if ((MOB.size() % FRAMES_PER_BUFFER) == 0 && !MOB.full()) {
-					//Music.updateBuffer();
-					putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());					
+				
+				if (AudioOutput.getNextVecFlag()) {
+					//if ((MOB.size() % FRAMES_PER_BUFFER) == 0 && !MOB.full()) {
+						//Music.updateBuffer();
+						//putVecIntoCircBuffer(&MOB, getCircBufferAsVector(&NOB));
+						putVecIntoCircBuffer(&MOB, NLMS_Algorithm.getOutVec());
+					//}
 				}
 			}
 		});
 		t.detach();
 	}
-
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief 
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
 	void ANC_System::drawNLMSData()
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(500));
 				{
-					std::lock_guard<std::mutex> lk(mut);
-					NLMS_Algorithm.drawData(x, d, "x", "d");
-					//NLMS_Algorithm.drawData();
+					//std::lock_guard<std::mutex> lk(mut);
+					//NLMS_Algorithm.drawData(x, d, "x", "d");
+					NLMS_Algorithm.drawData();
 				}
 			}
 		});
 		t.detach();
 	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
 	void ANC_System::loadNewNoiseVector()
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
-				{
-					std::lock_guard<std::mutex> lk(mut);
+				std::this_thread::sleep_for(std::chrono::microseconds(50));
 
-					if (newNoiseSampleAvailable.load(std::memory_order_acquire) == true &&
-						newNoiseVectorAvailable.load(std::memory_order_acquire) == false) {
-						x.clear();
-						x = getCircBufferAsVec(&NIB);
-						//NoiseInputBuffer.RingBuffer_Clear();
-						//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+				//std::lock_guard<std::mutex> lk(mut);
 
-						newNoiseVectorAvailable.store(true, std::memory_order_release);
-						newNoiseSampleAvailable.store(false, std::memory_order_release);
-					}
-					if (newErrorSampleAvailable.load(std::memory_order_acquire) == true &&
-						newErrorVectorAvailable.load(std::memory_order_acquire) == false) {
-						d.clear();
-						d = getCircBufferAsVec(&EIB);
-						//ErrorInputBuffer.RingBuffer_Clear();
-						//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+				if (newNoiseSampleAvailable == true &&
+					newNoiseVectorAvailable == false) {
 
-						newErrorVectorAvailable.store(true, std::memory_order_release);
-						newErrorSampleAvailable.store(false, std::memory_order_release);
-					}
+					x.clear();
+					x = getCircBufferAsVec(&NIB);
+
+					//x = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+
+					newNoiseVectorAvailable = true;
+					newNoiseSampleAvailable = false;
 				}
+
+				if (newErrorSampleAvailable == true &&
+					newErrorVectorAvailable == false) {
+
+					d.clear();
+					d = getCircBufferAsVec(&EIB);
+
+					//d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
+
+					newErrorVectorAvailable = true;
+					newErrorSampleAvailable = false;
+				}
+
+				if (newErrorVectorAvailable &&
+					newNoiseVectorAvailable) 
+				{
+					updateReady = true;
+				}
+				else updateReady = false;
 			}
 		});
 		t.detach();
 	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
 	void ANC_System::loadNewErrorVector()
 	{
 		std::thread t([&] {
 			while (!StopThreads) {
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
+				std::this_thread::sleep_for(std::chrono::microseconds(50));
 
-				if (newErrorSampleAvailable.load(std::memory_order_acquire) == true &&
-					newErrorVectorAvailable.load(std::memory_order_acquire) == false) {
+				if (newErrorSampleAvailable == true &&
+					newErrorVectorAvailable == false) {
 
 					//d = getCircBufferAsVec(&EIB);
 					//ErrorInputBuffer.RingBuffer_Clear();
 					d = arma::vec(FRAMES_PER_BUFFER, arma::fill::randn);
 
-					newErrorVectorAvailable.store(true, std::memory_order_release);
-					newErrorSampleAvailable.store(false, std::memory_order_release);
+					newErrorVectorAvailable = true;
+					newErrorSampleAvailable = false;
 				}
 			}
 		});
 		t.detach();
 	}
-
-
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
 	arma::vec ANC_System::getCircBufferAsVec(boost::circular_buffer<float> *buff)
 	{
 		/*
 		max time: 1ms
 		*/
-		arma::vec temp(FRAMES_PER_BUFFER, arma::fill::zeros);
-		//temp.fill(0);
+		arma::vec temp(FRAMES_PER_BUFFER, arma::fill::zeros);		
 		
 		//if (buff->size() >= FRAMES_PER_BUFFER) {
 			for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
-				temp(i) = buff->back();
+				temp(i) = buff->back();				
 				buff->pop_back();
 			}
 		//}
 		return temp;
 	}
-
-	void ANC_System::putVecIntoCircBuffer(boost::circular_buffer<float> *buff, arma::vec in)
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
+	std::vector<float> ANC_System::getCircBufferAsVector(boost::circular_buffer<float> *buff)
 	{
 		/*
-		max time = 2ms
+		max time: 1ms
 		*/
+		std::vector<float> temp;
+
+		//if (buff->size() >= FRAMES_PER_BUFFER) {
+		for (int i = 0; i < FRAMES_PER_BUFFER; i++) {
+			if (buff->full()) break;			
+			temp.push_back(buff->back());
+			buff->pop_back();
+		}
+		//}
+		return temp;
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
+	void ANC_System::putVecIntoCircBuffer(boost::circular_buffer<float> *buff, arma::vec in)
+	{
 		for (int i = 0; i < in.size(); i++) {
+			if (buff->full()) break;
 			buff->push_front(in(i));
+		}
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief
+		@author	Micha³ Berdzik
+		@version 0.0.1 10-04-2019
+		@param
+		@retval
+	*/
+	void ANC_System::putVecIntoCircBuffer(boost::circular_buffer<float> *buff, std::vector<float> in)
+	{
+		for (int i = 0; i < in.size(); i++) {
+			if (buff->full()) break;
+			buff->push_front(in[i]);
 		}
 	}
 } //ANC
