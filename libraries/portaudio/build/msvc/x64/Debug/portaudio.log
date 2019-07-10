@@ -1,0 +1,12 @@
+﻿cl : Wiersz polecenia warning D9035: Opcja "Gm" jest przestarzała i będzie usunięta w przyszłych wydaniach
+  pa_asio.cpp
+  asiolist.cpp
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\asio\asiosdk\host\pc\asiolist.cpp(24): warning C4267: "argument": konwersja z "size_t" do "DWORD", możliwa utrata danych
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\asio\asiosdk\host\pc\asiolist.cpp(31): warning C4267: "argument": konwersja z "size_t" do "DWORD", możliwa utrata danych
+  asiodrivers.cpp
+  asio.cpp
+  Generowanie kodu...
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(1216,5): warning MSB8012: Wartość TargetPath(C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\portaudio\build\msvc\x64\Debug\portaudio.dll) jest niezgodna z wartością właściwości OutputFile obiektu Linker (C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\portaudio\build\msvc\x64\Debug\portaudio_x64.dll). Może to spowodować, że projekt zostanie niepoprawnie skompilowany. Aby rozwiązać ten problem, upewnij się, że wartości właściwości $(OutDir), $(TargetName) i $(TargetExt) są zgodne z wartością określoną we właściwości %(Link.OutputFile). 
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(1218,5): warning MSB8012: Wartość TargetName(portaudio) jest niezgodna z wartością właściwości OutputFile obiektu Linker (portaudio_x64). Może to spowodować, że projekt zostanie niepoprawnie skompilowany. Aby rozwiązać ten problem, upewnij się, że wartości właściwości $(OutDir), $(TargetName) i $(TargetExt) są zgodne z wartością określoną we właściwości %(Link.OutputFile). 
+     Trwa tworzenie biblioteki x64\Debug\portaudio_x64.lib i obiektu x64\Debug\portaudio_x64.exp
+  portaudio.vcxproj -> C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\portaudio\build\msvc\x64\Debug\portaudio.dll

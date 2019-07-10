@@ -66,8 +66,8 @@ namespace AI {
 			&outputParameters,
 			SAMPLE_RATE,
 
-			FRAMES_PER_BUFFER,
-			//paFramesPerBufferUnspecified,
+			//FRAMES_PER_BUFFER,
+			paFramesPerBufferUnspecified,
 
 			paClipOff,      /* we won't output out of range samples so don't bother clipping them */
 			//paDitherOff,

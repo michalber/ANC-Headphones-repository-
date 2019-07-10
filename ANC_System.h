@@ -2,9 +2,7 @@
 #ifndef _ANC_SYSTEM_H_
 #define _ANC_SYSTEM_H_
 
-
 #include <thread>
-#include <future>
 #include <atomic>
 #include <chrono>
 #include <windows.h>
@@ -37,7 +35,7 @@ namespace ANC {
 		arma::vec x;
 		arma::vec d;
 		
-		volatile std::atomic<bool> StopThreads = 0;
+		std::atomic<bool> StopThreads = 0;
 
 		bool newErrorSampleAvailable{ false };
 		bool newNoiseSampleAvailable{ false };

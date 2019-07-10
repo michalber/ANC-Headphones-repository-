@@ -1,0 +1,42 @@
+﻿  pa_allocation.c
+  pa_converters.c
+  pa_cpuload.c
+  pa_debugprint.c
+  pa_dither.c
+  pa_front.c
+  pa_process.c
+  pa_ringbuffer.c
+  pa_stream.c
+  pa_trace.c
+  pa_win_ds.c
+  pa_win_ds_dynlink.c
+  pa_hostapi_skeleton.c
+  pa_win_wasapi.c
+  pa_win_wdmks.c
+  pa_win_wmme.c
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\wmme\pa_win_wmme.c(676): warning C4312: "typ rzutowania": konwersja z "int" na "HWAVEIN" jest większej wielkości
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\wmme\pa_win_wmme.c(685): warning C4312: "typ rzutowania": konwersja z "int" na "HWAVEIN" jest większej wielkości
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\wmme\pa_win_wmme.c(806): warning C4312: "typ rzutowania": konwersja z "int" na "HWAVEOUT" jest większej wielkości
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\wmme\pa_win_wmme.c(815): warning C4312: "typ rzutowania": konwersja z "int" na "HWAVEOUT" jest większej wielkości
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\wmme\pa_win_wmme.c(1020): warning C4312: "typ rzutowania": konwersja z "UINT" na "HWAVEIN" jest większej wielkości
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\wmme\pa_win_wmme.c(1024): warning C4312: "typ rzutowania": konwersja z "UINT" na "HWAVEOUT" jest większej wielkości
+  pa_win_coinitialize.c
+  pa_win_hostapis.c
+  pa_win_util.c
+  pa_win_waveformat.c
+  Generowanie kodu...
+  Trwa kompilowanie...
+  pa_win_wdmks_utils.c
+  pa_x86_plain_converters.c
+  Generowanie kodu...
+  asio.cpp
+  asiodrivers.cpp
+  asiolist.cpp
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\asio\asiosdk\host\pc\asiolist.cpp(24): warning C4267: "argument": konwersja z "size_t" do "DWORD", możliwa utrata danych
+c:\users\michu\source\repos\anc_inz_v0\anc_inz_v0\portaudio\src\hostapi\asio\asiosdk\host\pc\asiolist.cpp(31): warning C4267: "argument": konwersja z "size_t" do "DWORD", możliwa utrata danych
+  pa_asio.cpp
+  Generowanie kodu...
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(1216,5): warning MSB8012: Wartość TargetPath(C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\portaudio\build\msvc\x64\Release\portaudio.dll) jest niezgodna z wartością właściwości OutputFile obiektu Linker (C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\portaudio\build\msvc\x64\Release\portaudio_x64.dll). Może to spowodować, że projekt zostanie niepoprawnie skompilowany. Aby rozwiązać ten problem, upewnij się, że wartości właściwości $(OutDir), $(TargetName) i $(TargetExt) są zgodne z wartością określoną we właściwości %(Link.OutputFile). 
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(1218,5): warning MSB8012: Wartość TargetName(portaudio) jest niezgodna z wartością właściwości OutputFile obiektu Linker (portaudio_x64). Może to spowodować, że projekt zostanie niepoprawnie skompilowany. Aby rozwiązać ten problem, upewnij się, że wartości właściwości $(OutDir), $(TargetName) i $(TargetExt) są zgodne z wartością określoną we właściwości %(Link.OutputFile). 
+     Trwa tworzenie biblioteki x64\Release/portaudio_x64.lib i obiektu x64\Release/portaudio_x64.exp
+  portaudio.vcxproj -> C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\portaudio\build\msvc\x64\Release\portaudio.dll

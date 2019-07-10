@@ -115,15 +115,15 @@ namespace ANC {
 				auto start = std::chrono::high_resolution_clock::now();
 				
 				//std::lock_guard<std::mutex> lk(mut);				
-				//Noise.updateBuffer(1);
-				Music.updateBufferOnce();
+				//Noise.updateBuffer();
+				Music.updateBuffer();
 				//MOB.push_front(arma::randn());
 				
 
 				auto end = std::chrono::high_resolution_clock::now();
 				auto elapsed = end - start;
-				auto timeToWait = std::chrono::microseconds(20) - elapsed;
-				if (timeToWait > std::chrono::microseconds::zero())
+				auto timeToWait = std::chrono::milliseconds(23) - elapsed;
+				if (timeToWait > std::chrono::milliseconds::zero())
 				{
 					std::this_thread::sleep_until(start + timeToWait);
 					//Sleep(timeToWait.count());

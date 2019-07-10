@@ -1,0 +1,7 @@
+﻿cl : Wiersz polecenia warning D9035: Opcja "Gm" jest przestarzała i będzie usunięta w przyszłych wydaniach
+cl : Wiersz polecenia warning D9002: ignorowanie nieznanej opcji „/wc4574”
+  main_blinky.c
+c:\program files (x86)\windows kits\10\include\10.0.17763.0\um\windows.h(254): warning C5031: #pragma warning(pop): prawdopodobnie niezgodność, stan ostrzeżenia o wyświetlaniu wypychany w innym pliku
+  c:\program files (x86)\windows kits\10\include\10.0.17763.0\um\winioctl.h(161): note: #pragma warning(push)
+c:\program files (x86)\windows kits\10\include\10.0.17763.0\um\windows.h(161): warning C5032: wykryto instrukcję #pragma warning(push) bez odpowiadającej jej instrukcji #pragma warning(pop)
+  WIN32.vcxproj -> C:\Users\michu\Downloads\FreeRTOSv10.2.1\FreeRTOS\Demo\WIN32-MSVC\.\Debug\RTOSDemo.exe
