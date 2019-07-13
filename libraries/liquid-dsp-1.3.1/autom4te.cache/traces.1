@@ -1,0 +1,298 @@
+m4trace:scripts/ax_check_compile_flag.m4:58: -1- AC_DEFUN([AX_CHECK_COMPILE_FLAG], [AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
+AS_VAR_PUSHDEF([CACHEVAR],[ax_cv_check_[]_AC_LANG_ABBREV[]flags_$4_$1])dnl
+AC_CACHE_CHECK([whether _AC_LANG compiler accepts $1], CACHEVAR, [
+  ax_check_save_flags=$[]_AC_LANG_PREFIX[]FLAGS
+  _AC_LANG_PREFIX[]FLAGS="$[]_AC_LANG_PREFIX[]FLAGS $4 $1"
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
+    [AS_VAR_SET(CACHEVAR,[yes])],
+    [AS_VAR_SET(CACHEVAR,[no])])
+  _AC_LANG_PREFIX[]FLAGS=$ax_check_save_flags])
+AS_IF([test x"AS_VAR_GET(CACHEVAR)" = xyes],
+  [m4_default([$2], :)],
+  [m4_default([$3], :)])
+AS_VAR_POPDEF([CACHEVAR])dnl
+])
+m4trace:scripts/ax_ext.m4:48: -1- AC_DEFUN([AX_EXT], [
+  AC_REQUIRE([AX_GCC_X86_CPUID])
+
+  AX_GCC_X86_CPUID(0x00000001)
+  ecx=0
+  edx=0
+  if test "$ax_cv_gcc_x86_cpuid_0x00000001" != "unknown";
+  then
+     ecx=`echo $ax_cv_gcc_x86_cpuid_0x00000001 | cut -d ":" -f 3`
+     edx=`echo $ax_cv_gcc_x86_cpuid_0x00000001 | cut -d ":" -f 4`
+  fi
+
+ AC_CHECK_HEADERS(mmintrin.h xmmintrin.h emmintrin.h pmmintrin.h tmmintrin.h smmintrin.h immintrin.h)
+
+ AC_CACHE_CHECK([whether mmx is supported], [ax_cv_have_mmx_ext],
+  [
+    ax_cv_have_mmx_ext=no
+    if test "$((0x$edx>>23&0x01))" = 1; then
+      ax_cv_have_mmx_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether sse is supported], [ax_cv_have_sse_ext],
+  [
+    ax_cv_have_sse_ext=no
+    if test "$((0x$edx>>25&0x01))" = 1; then
+      ax_cv_have_sse_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether sse2 is supported], [ax_cv_have_sse2_ext],
+  [
+    ax_cv_have_sse2_ext=no
+    if test "$((0x$edx>>26&0x01))" = 1; then
+      ax_cv_have_sse2_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether sse3 is supported], [ax_cv_have_sse3_ext],
+  [
+    ax_cv_have_sse3_ext=no
+    if test "$((0x$ecx&0x01))" = 1; then
+      ax_cv_have_sse3_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether ssse3 is supported], [ax_cv_have_ssse3_ext],
+  [
+    ax_cv_have_ssse3_ext=no
+    if test "$((0x$ecx>>9&0x01))" = 1; then
+      ax_cv_have_ssse3_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether sse4.1 is supported], [ax_cv_have_sse41_ext],
+  [
+    ax_cv_have_sse41_ext=no
+    if test "$((0x$ecx>>19&0x01))" = 1; then
+      ax_cv_have_sse41_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether sse4.2 is supported], [ax_cv_have_sse42_ext],
+  [
+    ax_cv_have_sse42_ext=no
+    if test "$((0x$ecx>>20&0x01))" = 1; then
+      ax_cv_have_sse42_ext=yes
+    fi
+  ])
+
+ AC_CACHE_CHECK([whether avx is supported], [ax_cv_have_avx_ext],
+  [
+    ax_cv_have_avx_ext=no
+    if test "$((0x$ecx>>28&0x01))" = 1; then
+      ax_cv_have_avx_ext=yes
+    fi
+  ])
+
+  if [ test "$ax_cv_have_mmx_ext" = yes && test "$ac_cv_header_mmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_MMX,, [Support MMX instructions])
+    AX_CHECK_COMPILE_FLAG(-mmmx, SIMD_FLAGS="$SIMD_FLAGS -mmmx", [])
+  fi
+
+  if [ test "$ax_cv_have_sse_ext" = yes && test "$ac_cv_header_xmmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_SSE,, [Support SSE (Streaming SIMD Extensions) instructions])
+    AX_CHECK_COMPILE_FLAG(-msse, SIMD_FLAGS="$SIMD_FLAGS -msse", [])
+  fi
+
+  if [ test "$ax_cv_have_sse2_ext" = yes && test "$ac_cv_header_emmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_SSE2,, [Support SSE2 (Streaming SIMD Extensions 2) instructions])
+    AX_CHECK_COMPILE_FLAG(-msse2, SIMD_FLAGS="$SIMD_FLAGS -msse2", [])
+  fi
+
+  if [ test "$ax_cv_have_sse3_ext" = yes && test "$ac_cv_header_pmmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_SSE3,, [Support SSE3 (Streaming SIMD Extensions 3) instructions])
+    AX_CHECK_COMPILE_FLAG(-msse3, SIMD_FLAGS="$SIMD_FLAGS -msse3", [])
+  fi
+
+  if [ test "$ax_cv_have_ssse3_ext" = yes && test "$ac_cv_header_tmmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_SSSE3,, [Support SSSE3 (Supplemental Streaming SIMD Extensions 3) instructions])
+    AX_CHECK_COMPILE_FLAG(-mssse3, SIMD_FLAGS="$SIMD_FLAGS -mssse3", [])
+  fi
+
+  if [ test "$ax_cv_have_sse41_ext" = yes && test "$ac_cv_header_smmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_SSE41,, [Support SSE4.1 (Streaming SIMD Extensions 4.1) instructions])
+    AX_CHECK_COMPILE_FLAG(-msse4.1, SIMD_FLAGS="$SIMD_FLAGS -msse4.1", [])
+  fi
+
+  if [ test "$ax_cv_have_sse42_ext" = yes && test "$ac_cv_header_smmintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_SSE42, 1,[Support SSE4.2 (Streaming SIMD Extensions 4.2) instructions])
+    AX_CHECK_COMPILE_FLAG(-msse4.2, SIMD_FLAGS="$SIMD_FLAGS -msse4.2", [])
+  fi
+
+  if [ test "$ax_cv_have_avx_ext" = yes && test "$ac_cv_header_immintrin_h" = yes ]; then
+    AC_DEFINE(HAVE_AVX,,[Support AVX (Advanced Vector Extensions) instructions])
+    AX_CHECK_COMPILE_FLAG(-mavx, SIMD_FLAGS="$SIMD_FLAGS -mavx", [])
+  fi
+
+  AC_SUBST(SIMD_FLAGS)
+])
+m4trace:scripts/ax_gcc_x86_cpuid.m4:60: -1- AC_DEFUN([AX_GCC_X86_CPUID], [AC_REQUIRE([AC_PROG_CC])
+AC_LANG_PUSH([C])
+AC_CACHE_CHECK(for x86 cpuid $1 output, ax_cv_gcc_x86_cpuid_$1,
+ [AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>], [
+     int op = $1, eax, ebx, ecx, edx;
+     FILE *f;
+      __asm__("cpuid"
+        : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+        : "a" (op));
+     f = fopen("conftest_cpuid", "w"); if (!f) return 1;
+     fprintf(f, "%x:%x:%x:%x\n", eax, ebx, ecx, edx);
+     fclose(f);
+     return 0;
+])],
+     [ax_cv_gcc_x86_cpuid_$1=`cat conftest_cpuid`; rm -f conftest_cpuid],
+     [ax_cv_gcc_x86_cpuid_$1=unknown; rm -f conftest_cpuid],
+     [ax_cv_gcc_x86_cpuid_$1=unknown])])
+AC_LANG_POP([C])
+])
+m4trace:configure.ac:26: -1- m4_pattern_forbid([^_?A[CHUM]_])
+m4trace:configure.ac:26: -1- m4_pattern_forbid([_AC_])
+m4trace:configure.ac:26: -1- m4_pattern_forbid([^LIBOBJS$], [do not use LIBOBJS directly, use AC_LIBOBJ (see section `AC_LIBOBJ vs LIBOBJS'])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^AS_FLAGS$])
+m4trace:configure.ac:26: -1- m4_pattern_forbid([^_?m4_])
+m4trace:configure.ac:26: -1- m4_pattern_forbid([^dnl$])
+m4trace:configure.ac:26: -1- m4_pattern_forbid([^_?AS_])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^SHELL$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PATH_SEPARATOR$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_NAME$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_TARNAME$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_VERSION$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_STRING$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_BUGREPORT$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_URL$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^exec_prefix$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^prefix$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^program_transform_name$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^bindir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^sbindir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^libexecdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^datarootdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^datadir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^sysconfdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^sharedstatedir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^localstatedir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^runstatedir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^includedir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^oldincludedir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^docdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^infodir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^htmldir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^dvidir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^pdfdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^psdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^libdir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^localedir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^mandir$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_NAME$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_TARNAME$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_VERSION$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_STRING$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_BUGREPORT$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^PACKAGE_URL$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^DEFS$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^ECHO_C$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^ECHO_N$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^ECHO_T$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^LIBS$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^build_alias$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^host_alias$])
+m4trace:configure.ac:26: -1- m4_pattern_allow([^target_alias$])
+m4trace:configure.ac:28: -1- AC_CONFIG_MACRO_DIR([scripts])
+m4trace:configure.ac:60: -1- m4_pattern_allow([^LIQUID_SIMDOVERRIDE$])
+m4trace:configure.ac:66: -1- m4_pattern_allow([^LIQUID_FFTOVERRIDE$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CFLAGS$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^LDFLAGS$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^LIBS$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CPPFLAGS$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^CC$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^ac_ct_CC$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^EXEEXT$])
+m4trace:configure.ac:73: -1- m4_pattern_allow([^OBJEXT$])
+m4trace:configure.ac:74: -1- m4_pattern_allow([^SED$])
+m4trace:configure.ac:75: -1- m4_pattern_allow([^GREP$])
+m4trace:configure.ac:76: -1- m4_pattern_allow([^INSTALL_PROGRAM$])
+m4trace:configure.ac:76: -1- m4_pattern_allow([^INSTALL_SCRIPT$])
+m4trace:configure.ac:76: -1- m4_pattern_allow([^INSTALL_DATA$])
+m4trace:configure.ac:77: -1- m4_pattern_allow([^RANLIB$])
+m4trace:configure.ac:80: -1- AC_DEFUN([AC_PROG_AR], [AC_CHECK_TOOL(AR, ar, :)])
+m4trace:configure.ac:81: -1- AC_PROG_AR
+m4trace:configure.ac:81: -1- m4_pattern_allow([^AR$])
+m4trace:configure.ac:84: -1- m4_pattern_allow([^LIB@&t@OBJS$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^CPP$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^CPPFLAGS$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^CPP$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^EGREP$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^STDC_HEADERS$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^HAVE_STDLIB_H$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^HAVE_MALLOC$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^HAVE_MALLOC$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^LIB@&t@OBJS$])
+m4trace:configure.ac:85: -1- m4_pattern_allow([^malloc$])
+m4trace:configure.ac:86: -1- m4_pattern_allow([^HAVE_STDLIB_H$])
+m4trace:configure.ac:86: -1- m4_pattern_allow([^HAVE_REALLOC$])
+m4trace:configure.ac:86: -1- m4_pattern_allow([^HAVE_REALLOC$])
+m4trace:configure.ac:86: -1- m4_pattern_allow([^LIB@&t@OBJS$])
+m4trace:configure.ac:86: -1- m4_pattern_allow([^realloc$])
+m4trace:configure.ac:89: -1- m4_pattern_allow([^HAVE_LIBC$])
+m4trace:configure.ac:90: -1- m4_pattern_allow([^HAVE_LIBM$])
+m4trace:configure.ac:117: -1- m4_pattern_allow([^HAVE_LIBFFTW3F$])
+m4trace:configure.ac:120: -1- m4_pattern_allow([^HAVE_LIBFEC$])
+m4trace:configure.ac:126: -1- m4_pattern_allow([^size_t$])
+m4trace:configure.ac:127: -1- m4_pattern_allow([^_UINT32_T$])
+m4trace:configure.ac:127: -1- m4_pattern_allow([^uint32_t$])
+m4trace:configure.ac:128: -1- m4_pattern_allow([^_UINT8_T$])
+m4trace:configure.ac:128: -1- m4_pattern_allow([^uint8_t$])
+m4trace:configure.ac:131: -1- m4_pattern_allow([^SIZEOF_INT$])
+m4trace:configure.ac:132: -1- m4_pattern_allow([^SIZEOF_UNSIGNED_INT$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^build$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^build_cpu$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^build_vendor$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^build_os$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^host$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^host_cpu$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^host_vendor$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^host_os$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^target$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^target_cpu$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^target_vendor$])
+m4trace:configure.ac:141: -1- m4_pattern_allow([^target_os$])
+m4trace:configure.ac:163: -1- AX_EXT
+m4trace:configure.ac:163: -1- AX_GCC_X86_CPUID
+m4trace:configure.ac:163: -1- AX_GCC_X86_CPUID([0x00000001])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_MMX$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-mmmx], [SIMD_FLAGS="$SIMD_FLAGS -mmmx"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_SSE$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-msse], [SIMD_FLAGS="$SIMD_FLAGS -msse"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_SSE2$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-msse2], [SIMD_FLAGS="$SIMD_FLAGS -msse2"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_SSE3$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-msse3], [SIMD_FLAGS="$SIMD_FLAGS -msse3"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_SSSE3$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-mssse3], [SIMD_FLAGS="$SIMD_FLAGS -mssse3"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_SSE41$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-msse4.1], [SIMD_FLAGS="$SIMD_FLAGS -msse4.1"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_SSE42$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-msse4.2], [SIMD_FLAGS="$SIMD_FLAGS -msse4.2"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^HAVE_AVX$])
+m4trace:configure.ac:163: -1- AX_CHECK_COMPILE_FLAG([-mavx], [SIMD_FLAGS="$SIMD_FLAGS -mavx"], [])
+m4trace:configure.ac:163: -1- m4_pattern_allow([^SIMD_FLAGS$])
+m4trace:configure.ac:253: -1- m4_pattern_allow([^LIBS$])
+m4trace:configure.ac:254: -1- m4_pattern_allow([^MLIBS_DOTPROD$])
+m4trace:configure.ac:255: -1- m4_pattern_allow([^MLIBS_VECTOR$])
+m4trace:configure.ac:257: -1- m4_pattern_allow([^SH_LIB$])
+m4trace:configure.ac:258: -1- m4_pattern_allow([^REBIND$])
+m4trace:configure.ac:259: -1- m4_pattern_allow([^ARCH_OPTION$])
+m4trace:configure.ac:261: -1- m4_pattern_allow([^DEBUG_MSG_OPTION$])
+m4trace:configure.ac:262: -1- m4_pattern_allow([^CLIB$])
+m4trace:configure.ac:265: -1- m4_pattern_allow([^LIB@&t@OBJS$])
+m4trace:configure.ac:265: -1- m4_pattern_allow([^LTLIBOBJS$])
