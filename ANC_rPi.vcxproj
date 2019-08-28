@@ -1,0 +1,377 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{d7195583-a32d-4ce9-a9b3-97dce7696bb3}</ProjectGuid>
+    <Keyword>Linux</Keyword>
+    <RootNamespace>ANC_rPi</RootNamespace>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
+    <ApplicationType>Linux</ApplicationType>
+    <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+    <TargetLinuxPlatform>Raspberry</TargetLinuxPlatform>
+    <LinuxProjectType>{8748239F-558C-44D1-944B-07B09C35B330}</LinuxProjectType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <IncludePath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\DSP_Lib\Include;C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\CM4\CoreSupport;C:\Users\michu\source\liquid-dsp-1.3.1\include;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\DSP_Lib\Lib;C:\Users\michu\source\liquid-dsp-1.3.1;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\lib\.libs;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\DSP_Lib\Source;C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\CM4\CoreSupport;$(SourcePath)</SourcePath>
+    <LocalRemoteCopySources>true</LocalRemoteCopySources>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <IncludePath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\DSP_Lib\Include;C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\CM4\CoreSupport;C:\Users\michu\source\liquid-dsp-1.3.1\include;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\DSP_Lib\Lib;C:\Users\michu\source\liquid-dsp-1.3.1;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\lib\.libs;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\DSP_Lib\Source;C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\CM4\CoreSupport;$(SourcePath)</SourcePath>
+    <LocalRemoteCopySources>true</LocalRemoteCopySources>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Link>
+      <LibraryDependencies>wiringPi</LibraryDependencies>
+    </Link>
+    <RemotePostBuildEvent>
+      <Command>gpio export 17 out</Command>
+      <Message>export pin 17 using the gpio utility so that we can execute the blink program without sudo</Message>
+    </RemotePostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Link>
+      <LibraryDependencies>wiringPi</LibraryDependencies>
+      <AdditionalLibraryDirectories>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\DSP_Lib\Source;C:\Users\michu\source\liquid-dsp-1.3.1\src;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SharedLibrarySearchPath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\DSP_Lib\Source;C:\Users\michu\source\liquid-dsp-1.3.1\src;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\lib\.libs;%(SharedLibrarySearchPath)</SharedLibrarySearchPath>
+      <AdditionalOptions>-lrt -lasound -lpthread -lportaudio -lliquid %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <RemotePostBuildEvent>
+      <Command>gpio export 17 out</Command>
+      <Message>export pin 17 using the gpio utility so that we can execute the blink program without sudo</Message>
+    </RemotePostBuildEvent>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <UnrollLoops>true</UnrollLoops>
+      <LinkTimeOptimization>false</LinkTimeOptimization>
+      <RelaxIEEE>true</RelaxIEEE>
+      <StrictAliasing>false</StrictAliasing>
+      <PositionIndependentCode>true</PositionIndependentCode>
+      <CLanguageStandard>gnu11</CLanguageStandard>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+      <PreprocessorDefinitions>ARM_MATH_CM4;ARM_MATH_MSB_FIRST;__FPU_PRESENT;__CMSIS_GENERIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ANC_System.cpp" />
+    <ClCompile Include="AudioInterface.cpp" />
+    <ClCompile Include="AudioStream.cpp" />
+    <ClCompile Include="CMSIS\CM4\CoreSupport\core_cm4.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_abs_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_abs_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_abs_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_abs_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_add_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_add_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_add_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_add_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_dot_prod_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_dot_prod_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_dot_prod_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_dot_prod_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_mult_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_mult_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_mult_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_mult_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_negate_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_negate_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_negate_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_negate_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_offset_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_offset_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_offset_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_offset_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_scale_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_scale_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_scale_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_scale_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_shift_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_shift_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_shift_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_sub_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_sub_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_sub_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\BasicMathFunctions\arm_sub_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\CommonTables\arm_common_tables.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_conj_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_conj_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_conj_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_dot_prod_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_dot_prod_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_dot_prod_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mag_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mag_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mag_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mag_squared_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mag_squared_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mag_squared_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mult_cmplx_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mult_cmplx_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mult_cmplx_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mult_real_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mult_real_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ComplexMathFunctions\arm_cmplx_mult_real_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_pid_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_pid_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_pid_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_pid_reset_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_pid_reset_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_pid_reset_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_sin_cos_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\ControllerFunctions\arm_sin_cos_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_cos_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_cos_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_cos_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_sin_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_sin_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_sin_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_sqrt_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FastMathFunctions\arm_sqrt_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_32x64_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_32x64_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df1_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df2T_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_biquad_cascade_df2T_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_partial_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_partial_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_partial_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_partial_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_partial_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_partial_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_conv_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_correlate_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_correlate_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_correlate_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_correlate_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_correlate_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_correlate_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_decimate_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_init_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_interpolate_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_interpolate_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_interpolate_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_interpolate_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_interpolate_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_interpolate_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_lattice_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_lattice_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_lattice_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_lattice_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_lattice_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_lattice_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_init_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_fir_sparse_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_iir_lattice_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_iir_lattice_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_iir_lattice_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_iir_lattice_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_iir_lattice_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_iir_lattice_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_norm_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_norm_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_norm_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_norm_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_norm_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_norm_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\FilteringFunctions\arm_lms_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_add_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_add_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_add_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_inverse_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_mult_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_mult_fast_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_mult_fast_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_mult_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_mult_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_scale_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_scale_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_scale_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_sub_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_sub_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_sub_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_trans_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_trans_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\MatrixFunctions\arm_mat_trans_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_max_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_max_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_max_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_max_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_mean_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_mean_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_mean_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_mean_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_min_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_min_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_min_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_min_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_power_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_power_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_power_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_power_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_rms_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_rms_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_rms_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_std_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_std_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_std_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_var_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_var_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\StatisticsFunctions\arm_var_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_copy_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_copy_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_copy_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_copy_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_fill_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_fill_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_fill_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_fill_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_float_to_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_float_to_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_float_to_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q15_to_float.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q15_to_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q15_to_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q31_to_float.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q31_to_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q31_to_q7.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q7_to_float.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q7_to_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\SupportFunctions\arm_q7_to_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_cfft_radix4_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_cfft_radix4_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_cfft_radix4_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_cfft_radix4_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_cfft_radix4_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_cfft_radix4_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_dct4_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_dct4_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_dct4_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_dct4_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_dct4_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_dct4_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_rfft_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_rfft_init_f32.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_rfft_init_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_rfft_init_q31.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_rfft_q15.c" />
+    <ClCompile Include="DSP_Lib\Source\Cortex-M4-M3\TransformFunctions\arm_rfft_q31.c" />
+    <ClCompile Include="FullDoubleBuffer.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="NLMS.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ANC_System.h" />
+    <ClInclude Include="AudioInterface.h" />
+    <ClInclude Include="AudioStream.h" />
+    <ClInclude Include="CMSIS\CM4\CoreSupport\core_cm4.h" />
+    <ClInclude Include="CMSIS\CM4\CoreSupport\core_cm4_simd.h" />
+    <ClInclude Include="CMSIS\CM4\CoreSupport\core_cmFunc.h" />
+    <ClInclude Include="CMSIS\CM4\CoreSupport\core_cmInstr.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="DSP_Lib\Include\arm_common_tables.h" />
+    <ClInclude Include="DSP_Lib\Include\arm_math.h" />
+    <ClInclude Include="FullDoubleBuffer.h" />
+    <ClInclude Include="NLMS.h" />
+    <ClInclude Include="ScopedPaHandler.h" />
+  </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Link>
+      <AdditionalLibraryDirectories>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\DSP_Lib\Source;C:\Users\michu\source\liquid-dsp-1.3.1\src;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SharedLibrarySearchPath>C:\Users\michu\source\repos\ANC_rPi\ANC_rPi\CMSIS\DSP_Lib\Source;C:\Users\michu\source\liquid-dsp-1.3.1\src;C:\Users\michu\source\repos\ANC_inz_v0\ANC_inz_v0\ANC-Headphones-repository-\libraries\portaudio\lib\.libs;%(SharedLibrarySearchPath)</SharedLibrarySearchPath>
+      <AdditionalOptions>-lrt -lasound -lpthread -lportaudio -lliquid %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <UnrollLoops>true</UnrollLoops>
+      <LinkTimeOptimization>false</LinkTimeOptimization>
+      <RelaxIEEE>true</RelaxIEEE>
+      <StrictAliasing>false</StrictAliasing>
+      <PositionIndependentCode>true</PositionIndependentCode>
+      <CLanguageStandard>gnu11</CLanguageStandard>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+      <PreprocessorDefinitions>ARM_MATH_CM4;ARM_MATH_MSB_FIRST;__FPU_PRESENT;__CMSIS_GENERIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>
