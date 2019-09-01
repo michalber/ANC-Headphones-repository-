@@ -4,7 +4,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief Default constructor of ANC_System class
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -68,7 +68,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief Parametrized constructor of ANC_System class
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -80,7 +80,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief Destructor of ANC_System class
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -101,7 +101,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief updateInputBuffers function of ANC_System class to update error and destiny sound buffers.
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -193,7 +193,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief processDataWithRLMS function of ANC_System class to run RLMS function to process input data
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -238,7 +238,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief updateOutputBuffer function of ANC_System class to update output buffer with processed data and music
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -277,7 +277,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief 
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -307,7 +307,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -369,14 +369,14 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
 	*/
 	void ANC_System::loadNewErrorVector()
 	{
-		std::thread t([&] {
+		&
 			while (!StopThreads) {
 				std::this_thread::sleep_for(std::chrono::microseconds(50));
 
@@ -397,7 +397,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -420,7 +420,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -444,7 +444,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval
@@ -459,7 +459,7 @@ namespace ANC {
 	//--------------------------------------------------------------------------------------------------------------------
 	/**
 		@brief
-		@author	Micha³ Berdzik
+		@author	Michaï¿½ Berdzik
 		@version 0.0.1 10-04-2019
 		@param
 		@retval

@@ -244,97 +244,97 @@ void putVecIntoCircBuffer(boost::circular_buffer<float> *buff, std::vector<float
 #include "../ANC-Headphones-repository-/RLMS.h"
 
 int main() {
-	ANC::ANC_System init;
+	//ANC::ANC_System init;
 
-//	std::ofstream fout("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Out.raw", std::ios::binary);
-//
-//	AI::AudioInterface AudioOutput;
-//	Handler::ScopedPaHandler paInit;
-//
-//	boost::circular_buffer<float> NIB;
-//	boost::circular_buffer<float> EIB;
-//	boost::circular_buffer<float> MOB;
-//
-//	AS::AudioStream Music;
-//	AS::AudioStream Noise;
-//	AS::AudioStream FilteredNoise;
-//	AS::AudioStream MusicNoise;
-//
-//	Adaptive::NLMS NLMS_Algorithm(150, 0.1, 0.001);
-//	RLMS::RLMS RLMS(400,1);
-//	
-//	std::vector<float> x;
-//	std::vector<float> d;
-//
-//	NIB.set_capacity(FRAMES_PER_BUFFER);
-//	EIB.set_capacity(FRAMES_PER_BUFFER);
-//	MOB.set_capacity(FRAMES_PER_BUFFER);
-//
-//	Music.openFile(std::string(DATA_PATH) + "Taco.raw");
-//	Music.setUpBuffer(&MOB);
-//
-//	//Noise.openFile(std::string(DATA_PATH) + "NoiseT.raw");
-//	Noise.openFile(std::string(DATA_PATH) + "x.raw");
-//	Noise.setUpBuffer(&NIB);
-//
-//	//MusicNoise.openFile(std::string(DATA_PATH) + "Sin+n.raw");
-//	MusicNoise.openFile(std::string(DATA_PATH) + "d.raw");
-//	MusicNoise.setUpBuffer(&EIB);
-//
-//	AudioOutput.setUpBuffer(&MOB);
-//
-//	if (paInit.result() != paNoError) {
-//		fprintf(stderr, "An error occured while using the portaudio stream\n");
-//		fprintf(stderr, "Error number: %d\n", paInit.result());
-//		fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(paInit.result()));
-//	}
-//
-//	if (AudioOutput.open(Pa_GetDefaultOutputDevice())) {
-//		if (AudioOutput.start()) {
-//#if DEBUG
-//			cout << "AudioOutput Started working" << endl;
-//#endif // DEBUG
-//		}
-//	}
-//
-//
-//	auto start = std::chrono::system_clock::now();
-//	for (int i = 0; i < 1500; i++) {
-//
-//		//updateNoiseBuffer();
-//		Noise.updateBuffer();
-//		//updateErrorBuffer();
-//		MusicNoise.updateBuffer();
-//		//Music.updateBuffer();
-//		//loadNewNoiseVector();
-//		x = getCircBufferAsVec(&NIB);
-//		d = getCircBufferAsVec(&EIB);
-//		//NLMS_Algorithm.updateNLMS(d, x, d);
-//		//updateOutputBuffer();
-//		//x = NLMS_Algorithm.getErrorVector();
-//		//std::vector<float> temp = NLMS_Algorithm.getOutVector();
-//		
-//		std::vector<float> temp;
-//		for (int k = 0; k < FRAMES_PER_BUFFER; k++) {
-//			//temp.push_back(RLMS.processNLMS(d[k], x[k], x[k]));		
-//			//MOB.push_front(RLMS.processNLMS(d[k], x[k], x[k]));
-//			Music.updateBufferOnce();
-//		}
-//		
-//		//for (int j = 0; j < FRAMES_PER_BUFFER; j++)
-//		//	fout.write(reinterpret_cast<const char*>(&temp[j]), sizeof(float));
-//
-//		x.clear();
-//		d.clear();
-//
-//		//drawNLMSData();
-//		//NLMS_Algorithm.drawData(x, d, "x", "d");
-//		//NLMS_Algorithm.drawData();
-//	}
-//	auto end = std::chrono::system_clock::now();
-//	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-//	cout << duration.count() / 1500 << endl;
-//	fout.close();
+	std::ofstream fout("C:\\Users\\michu\\source\\repos\\ANC_inz_v0\\ANC_inz_v0\\ANC-Headphones-repository-\\data\\Out.raw", std::ios::binary);
+
+	AI::AudioInterface AudioOutput;
+	Handler::ScopedPaHandler paInit;
+
+	boost::circular_buffer<float> NIB;
+	boost::circular_buffer<float> EIB;
+	boost::circular_buffer<float> MOB;
+
+	AS::AudioStream Music;
+	AS::AudioStream Noise;
+	AS::AudioStream FilteredNoise;
+	AS::AudioStream MusicNoise;
+
+	Adaptive::NLMS NLMS_Algorithm(150, 0.1, 0.001);
+	RLMS::RLMS RLMS(400,1);
+	
+	std::vector<float> x;
+	std::vector<float> d;
+
+	NIB.set_capacity(FRAMES_PER_BUFFER);
+	EIB.set_capacity(FRAMES_PER_BUFFER);
+	MOB.set_capacity(FRAMES_PER_BUFFER);
+
+	Music.openFile(std::string(DATA_PATH) + "Taco.raw");
+	Music.setUpBuffer(&MOB);
+
+	//Noise.openFile(std::string(DATA_PATH) + "NoiseT.raw");
+	Noise.openFile(std::string(DATA_PATH) + "x.raw");
+	Noise.setUpBuffer(&NIB);
+
+	//MusicNoise.openFile(std::string(DATA_PATH) + "Sin+n.raw");
+	MusicNoise.openFile(std::string(DATA_PATH) + "d.raw");
+	MusicNoise.setUpBuffer(&EIB);
+
+	AudioOutput.setUpBuffer(&MOB);
+
+	if (paInit.result() != paNoError) {
+		fprintf(stderr, "An error occured while using the portaudio stream\n");
+		fprintf(stderr, "Error number: %d\n", paInit.result());
+		fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(paInit.result()));
+	}
+
+	if (AudioOutput.open(Pa_GetDefaultOutputDevice())) {
+		if (AudioOutput.start()) {
+#if DEBUG
+			cout << "AudioOutput Started working" << endl;
+#endif // DEBUG
+		}
+	}
+
+
+	auto start = std::chrono::system_clock::now();
+	for (int i = 0; i < 1500; i++) {
+
+		//updateNoiseBuffer();
+		Noise.updateBuffer();
+		//updateErrorBuffer();
+		MusicNoise.updateBuffer();
+		//Music.updateBuffer();
+		//loadNewNoiseVector();
+		x = getCircBufferAsVec(&NIB);
+		d = getCircBufferAsVec(&EIB);
+		//NLMS_Algorithm.updateNLMS(d, x, d);
+		//updateOutputBuffer();
+		//x = NLMS_Algorithm.getErrorVector();
+		//std::vector<float> temp = NLMS_Algorithm.getOutVector();
+		
+		std::vector<float> temp;
+		for (int k = 0; k < FRAMES_PER_BUFFER; k++) {
+			//temp.push_back(RLMS.processNLMS(d[k], x[k], x[k]));		
+			//MOB.push_front(RLMS.processNLMS(d[k], x[k], x[k]));
+			//Music.updateBufferOnce();
+		}
+		
+		for (int j = 0; j < FRAMES_PER_BUFFER; j++)
+			fout.write(reinterpret_cast<const char*>(&temp[j]), sizeof(float));
+
+		x.clear();
+		d.clear();
+
+		//drawNLMSData();
+		//NLMS_Algorithm.drawData(x, d, "x", "d");
+		//NLMS_Algorithm.drawData();
+	}
+	auto end = std::chrono::system_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	cout << duration.count() / 1500 << endl;
+	fout.close();
 
 	std::cin.ignore();
 	return 0;
