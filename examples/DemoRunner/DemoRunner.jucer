@@ -121,6 +121,6 @@
                JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
   <LIVE_SETTINGS>
     <OSX/>
-    <WINDOWS buildEnabled="1"/>
+    <WINDOWS buildEnabled="0"/>
   </LIVE_SETTINGS>
 </JUCERPROJECT>

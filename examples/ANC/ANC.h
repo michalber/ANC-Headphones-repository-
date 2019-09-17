@@ -58,18 +58,14 @@
 
 //==============================================================================
 class LoopbackTester : public AudioIODeviceCallback,
-						//public AudioAppComponent,
 						private Thread
 {
 public:
 	LoopbackTester() :Thread("NLMS Processing Thread")
     {
-//		setAudioChannels(2, 2);
 		setPriority(realtimeAudioPriority);
-		startThread();
 	}
 	~LoopbackTester() {
-//		shutdownAudio();
 		signalThreadShouldExit();
 	}
 
@@ -115,6 +111,7 @@ public:
 		arm_lms_norm_init_f32(&lmsNorm_instance, 200, lmsNormCoeff_f32, lmsStateF32, 0.001, numOfSamples);
 		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, 200);
 		filter = dsp::FIR::Filter<float>(coeffs);
+		startThread();
     }
 
     void audioDeviceStopped() override {}
@@ -206,8 +203,7 @@ private:
 			errOutput,					/* Error Signal, this will become small as the signal converges */
 			numOfSamples);				/* BlockSize */
 
-		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, 200 * sizeof(float));
-		
+		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, 200 * sizeof(float));		
 	}
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LoopbackTester)
@@ -273,7 +269,7 @@ public:
     ~ActiveNoiseCancelling()
     {
         audioDeviceManager.removeAudioCallback (liveAudioScroller.get());
-//        audioDeviceManager.removeAudioCallback (latencyTester    .get());
+        audioDeviceManager.removeAudioCallback (latencyTester    .get());
 		audioDeviceManager.removeAudioCallback(spectrumAnalyser.get());
         latencyTester    .reset();
         liveAudioScroller.reset();
@@ -285,7 +281,7 @@ public:
         if (latencyTester.get() == nullptr)
         {
             latencyTester.reset (new LoopbackTester());
-//            audioDeviceManager.addAudioCallback (latencyTester.get());
+            audioDeviceManager.addAudioCallback (latencyTester.get());
         }
 
         latencyTester->beginTest();

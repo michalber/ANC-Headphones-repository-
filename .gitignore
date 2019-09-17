@@ -67,3 +67,15 @@ profile
 **/doxygen/doc
 **/doxygen/build
 extras/Projucer/JUCECompileEngine.dylib
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling.psess
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling.sln
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling1.psess
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling190917(1).vsp
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling190917(2).vsp
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling190917.vsp
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling190917.vspx
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling2.psess
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling_App.vcxproj
+examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling_App.vcxproj.filters
+examples/DemoRunner/Builds/VisualStudio2017/icon.ico
+examples/DemoRunner/Builds/VisualStudio2017/resources.rc
