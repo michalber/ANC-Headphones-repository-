@@ -57,12 +57,30 @@
 #include <future>
 
 //==============================================================================
-class LoopbackTester  : public AudioIODeviceCallback,
-                       private Timer
+class LoopbackTester : public AudioIODeviceCallback,
+						//public AudioAppComponent,
+						private Thread
 {
 public:
-	LoopbackTester()
-    {}
+	LoopbackTester() :Thread("NLMS Processing Thread")
+    {
+//		setAudioChannels(2, 2);
+		setPriority(realtimeAudioPriority);
+		startThread();
+	}
+	~LoopbackTester() {
+//		shutdownAudio();
+		signalThreadShouldExit();
+	}
+
+	void run() override 
+	{
+		while (!threadShouldExit())
+		{
+			processSamples((float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
+			wait(-1);
+		}
+	}
 
     //==============================================================================
     void beginTest()
@@ -71,57 +89,9 @@ public:
         //resultsBox.insertTextAtCaret (newLine + newLine + "Starting test..." + newLine);
         //resultsBox.moveCaretToEnd();
 
-        startTimer (50);
-
         const ScopedLock sl (lock);
-        createTestSound();
-        recordedSound.clear();
         playingSampleNum = recordedSampleNum = 0;
         testIsRunning = true;
-    }
-
-    void timerCallback() override
-    {
-        if (testIsRunning && recordedSampleNum >= recordedSound.getNumSamples())
-        {
-            testIsRunning = false;
-            stopTimer();
-
-            // Test has finished, so calculate the result..
-//            auto latencySamples = calculateLatencySamples();
-
-            //resultsBox.moveCaretToEnd();
-            //resultsBox.insertTextAtCaret (getMessageDescribingResult (latencySamples));
-            //resultsBox.moveCaretToEnd();
-        }
-    }
-
-    String getMessageDescribingResult (int latencySamples)
-    {
-        String message;
-
-        if (latencySamples >= 0)
-        {
-            message << newLine
-                    << "Results:" << newLine
-                    << latencySamples << " samples (" << String (latencySamples * 1000.0 / sampleRate, 1)
-                    << " milliseconds)" << newLine
-                    << "The audio device reports an input latency of "
-                    << deviceInputLatency << " samples, output latency of "
-                    << deviceOutputLatency << " samples." << newLine
-                    << "So the corrected latency = "
-                    << (latencySamples - deviceInputLatency - deviceOutputLatency)
-                    << " samples (" << String ((latencySamples - deviceInputLatency - deviceOutputLatency) * 1000.0 / sampleRate, 2)
-                    << " milliseconds)";
-        }
-        else
-        {
-            message << newLine
-                    << "Couldn't detect the test signal!!" << newLine
-                    << "Make sure there's no background noise that might be confusing it..";
-        }
-
-        return message;
     }
 
     //==============================================================================
@@ -137,21 +107,14 @@ public:
 
 //		NLMS_Algo = Adaptive::NLMS(numOfSamples);
 
-        recordedSound.setSize (2, (int) (0.9 * sampleRate));
-        recordedSound.clear();
-
-		inData.setSize(2, device->getCurrentBufferSizeSamples());
-		outData.setSize(2, device->getCurrentBufferSizeSamples());
+		inData.setSize(2, numOfSamples);
+		outData.setSize(2,numOfSamples);
 		inData.clear();
 		outData.clear();
 
 		arm_lms_norm_init_f32(&lmsNorm_instance, 200, lmsNormCoeff_f32, lmsStateF32, 0.001, numOfSamples);
 		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, 200);
 		filter = dsp::FIR::Filter<float>(coeffs);
-		dsp::ProcessSpec spec;
-		spec.sampleRate = sampleRate;
-		spec.numChannels = 2;
- 		spec.maximumBlockSize = playingSampleNum;
     }
 
     void audioDeviceStopped() override {}
@@ -203,7 +166,8 @@ public:
 		//NLMS_Algo.processNLMS((float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1),
 		//					  (float*)outData.getWritePointer(0), (float*)outData.getWritePointer(1));
 		
-		std::async(std::launch::async, &LoopbackTester::processSamples, this, (float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
+		//std::async(std::launch::async, &LoopbackTester::processSamples, this, (float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
+		notify();
 
 		recordedSampleNum = 0;
 		playingSampleNum = 0;
@@ -212,9 +176,7 @@ public:
 private:
 //    TextEditor& resultsBox;
 	Adaptive::NLMS NLMS_Algo;
-    AudioBuffer<float> testSound, recordedSound;
 	AudioBuffer<float> inData, outData;
-    Array<int> spikePositions;
     CriticalSection lock;
 
     int playingSampleNum  = 0;
@@ -247,111 +209,6 @@ private:
 		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, 200 * sizeof(float));
 		
 	}
-
-    // create a test sound which consists of a series of randomly-spaced audio spikes..
-    void createTestSound()
-    {
-        auto length = ((int) sampleRate) / 4;
-        testSound.setSize (2, length);
-        testSound.clear();
-
-        Random rand;
-
-        for (int i = 0; i < length; ++i)
-            testSound.setSample (0, i, (rand.nextFloat() - rand.nextFloat() + rand.nextFloat() - rand.nextFloat()) * 0.06f);
-
-        spikePositions.clear();
-
-        int spikePos   = 0;
-        int spikeDelta = 50;
-
-        while (spikePos < length - 1)
-        {
-            spikePositions.add (spikePos);
-
-            testSound.setSample (0, spikePos,      0.99f);
-            testSound.setSample (0, spikePos + 1, -0.99f);
-
-            spikePos += spikeDelta;
-            spikeDelta += spikeDelta / 6 + rand.nextInt (5);
-        }
-    }
-
-    // Searches a buffer for a set of spikes that matches those in the test sound
-    int findOffsetOfSpikes (const AudioBuffer<float>& buffer) const
-    {
-        auto minSpikeLevel = 5.0f;
-        auto smooth = 0.975;
-        auto* s = buffer.getReadPointer (0);
-        int spikeDriftAllowed = 5;
-
-        Array<int> spikesFound;
-        spikesFound.ensureStorageAllocated (100);
-        auto runningAverage = 0.0;
-        int lastSpike = 0;
-
-        for (int i = 0; i < buffer.getNumSamples() - 10; ++i)
-        {
-            auto samp = std::abs (s[i]);
-
-            if (samp > runningAverage * minSpikeLevel && i > lastSpike + 20)
-            {
-                lastSpike = i;
-                spikesFound.add (i);
-            }
-
-            runningAverage = runningAverage * smooth + (1.0 - smooth) * samp;
-        }
-
-        int bestMatch = -1;
-        auto bestNumMatches = spikePositions.size() / 3; // the minimum number of matches required
-
-        if (spikesFound.size() < bestNumMatches)
-            return -1;
-
-        for (int offsetToTest = 0; offsetToTest < buffer.getNumSamples() - 2048; ++offsetToTest)
-        {
-            int numMatchesHere = 0;
-            int foundIndex     = 0;
-
-            for (int refIndex = 0; refIndex < spikePositions.size(); ++refIndex)
-            {
-                auto referenceSpike = spikePositions.getUnchecked (refIndex) + offsetToTest;
-                int spike = 0;
-
-                while ((spike = spikesFound.getUnchecked (foundIndex)) < referenceSpike - spikeDriftAllowed
-                         && foundIndex < spikesFound.size() - 1)
-                    ++foundIndex;
-
-                if (spike >= referenceSpike - spikeDriftAllowed && spike <= referenceSpike + spikeDriftAllowed)
-                    ++numMatchesHere;
-            }
-
-            if (numMatchesHere > bestNumMatches)
-            {
-                bestNumMatches = numMatchesHere;
-                bestMatch = offsetToTest;
-
-                if (numMatchesHere == spikePositions.size())
-                    break;
-            }
-        }
-
-        return bestMatch;
-    }
-
-    int calculateLatencySamples() const
-    {
-        // Detect the sound in both our test sound and the recording of it, and measure the difference
-        // in their start times..
-        auto referenceStart = findOffsetOfSpikes (testSound);
-        jassert (referenceStart >= 0);
-
-        auto recordedStart = findOffsetOfSpikes (recordedSound);
-
-        return (recordedStart < 0) ? -1
-                                   : (recordedStart - referenceStart);
-    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LoopbackTester)
 };
@@ -416,7 +273,7 @@ public:
     ~ActiveNoiseCancelling()
     {
         audioDeviceManager.removeAudioCallback (liveAudioScroller.get());
-        audioDeviceManager.removeAudioCallback (latencyTester    .get());
+//        audioDeviceManager.removeAudioCallback (latencyTester    .get());
 		audioDeviceManager.removeAudioCallback(spectrumAnalyser.get());
         latencyTester    .reset();
         liveAudioScroller.reset();
@@ -428,7 +285,7 @@ public:
         if (latencyTester.get() == nullptr)
         {
             latencyTester.reset (new LoopbackTester());
-            audioDeviceManager.addAudioCallback (latencyTester.get());
+//            audioDeviceManager.addAudioCallback (latencyTester.get());
         }
 
         latencyTester->beginTest();

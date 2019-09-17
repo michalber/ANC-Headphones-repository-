@@ -38,7 +38,7 @@ typedef struct
  * @return none.
  */
 
-void arm_lms_norm_f32(
+inline void arm_lms_norm_f32(
 	arm_lms_norm_instance_f32 * S,
 	float * pSrc,
 	float * pRef,
@@ -312,7 +312,7 @@ void arm_lms_norm_init_f32(
 	 * @return none.
 	 */
 
-void arm_lms_norm_f32(
+inline void arm_lms_norm_f32(
 	arm_lms_norm_instance_f32 * S,
 	float * pSrc,
 	float * pRef,
