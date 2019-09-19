@@ -73,7 +73,10 @@ public:
 	{
 		while (!threadShouldExit())
 		{
+			auto start = std::chrono::high_resolution_clock::now();
 			processSamples((float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
+			auto end = std::chrono::high_resolution_clock::now();
+			auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 			wait(-1);
 		}
 	}
@@ -89,6 +92,10 @@ public:
         playingSampleNum = recordedSampleNum = 0;
         testIsRunning = true;
     }
+
+	void setVolume(float vol) {
+		volume = vol;
+	}
 
     //==============================================================================
     void audioDeviceAboutToStart (AudioIODevice* device) override
@@ -108,6 +115,23 @@ public:
 		inData.clear();
 		outData.clear();
 
+		iirCoefficients = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 440.0f);
+		iir.reset(new dsp::IIR::Filter<dsp::SIMDRegister<float>>(iirCoefficients)); // [5]
+
+		interleaved = dsp::AudioBlock<dsp::SIMDRegister<float>>(interleavedBlockData, 2, numOfSamples);
+		zero = dsp::AudioBlock<float>(zeroData, dsp::SIMDRegister<float>::size(), numOfSamples); // [6]
+		zero.clear();
+		
+		dsp::ProcessSpec spec;
+		spec.numChannels = 2;
+		spec.maximumBlockSize = numOfSamples;
+		spec.sampleRate = sampleRate;
+		iir->prepare(spec); // [7]
+
+		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 440.0f);	
+		stereoIIR.prepare(spec);
+
+
 		arm_lms_norm_init_f32(&lmsNorm_instance, 200, lmsNormCoeff_f32, lmsStateF32, 0.001, numOfSamples);
 		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, 200);
 		filter = dsp::FIR::Filter<float>(coeffs);
@@ -120,55 +144,65 @@ public:
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
 		const ScopedLock sl(lock);
+		auto start = std::chrono::high_resolution_clock::now();
 
-		//auto* recordingBufferL = recordedSound.getWritePointer(0);
-		//auto* recordingBufferR = recordedSound.getWritePointer(1);
-		//auto* playBufferL = testSound.getReadPointer(0);
-		//auto* playBufferR = testSound.getReadPointer(1);
-
-		auto* playBufferL = outData.getReadPointer(0);
-		auto* playBufferR = outData.getReadPointer(1);
-		auto* recBufferL = inData.getWritePointer(0);
-		auto* recBufferR = inData.getWritePointer(1);
-
-		for (int i = 0; i < numSamples; ++i)
-		{
-			if (recordedSampleNum < inData.getNumSamples()) {
-				//				for (int j = 0; j < numInputChannels; j++) {
-				//					outputChannelData[j][i] = inputChannelData[j][i];					
-				//				}
-				recBufferL[recordedSampleNum] = inputChannelData[0][i];
-				recBufferR[recordedSampleNum] = inputChannelData[1][i];
-			}
-			++recordedSampleNum;			
-
-			auto outputSampleL = (playingSampleNum <= outData.getNumSamples()) ? playBufferL[playingSampleNum] : 0.0f;
-			auto outputSampleR = (playingSampleNum <= outData.getNumSamples()) ? playBufferR[playingSampleNum] : 0.0f;
-
-			outputChannelData[0][i] = (filter.processSample(inputChannelData[0][i]));
-			outputChannelData[1][i] = (filter.processSample(inputChannelData[1][i]));
-//			outputChannelData[0][i] = outputSampleL;
-//			outputChannelData[1][i] = outputSampleR;
-//			outputChannelData[0][i] = inputChannelData[0][i];
-//			outputChannelData[1][i] = inputChannelData[1][i];
-
-			++playingSampleNum;
-		}
+				auto* playBufferL = outData.getReadPointer(0);
+				auto* playBufferR = outData.getReadPointer(1);
+				auto* recBufferL = inData.getWritePointer(0);
+				auto* recBufferR = inData.getWritePointer(1);
 		
-//		std::async(std::launch::async, &Adaptive::NLMS::processNLMS, &NLMS_Algo,
-//					(float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1),
-//					(float*)outData.getWritePointer(0), (float*)outData.getWritePointer(1)
-//		);
-
-		//NLMS_Algo.processNLMS((float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1),
-		//					  (float*)outData.getWritePointer(0), (float*)outData.getWritePointer(1));
+				for (int i = 0; i < numSamples; ++i)
+				{
+					if (recordedSampleNum < inData.getNumSamples()) {
+						//				for (int j = 0; j < numInputChannels; j++) {
+						//					outputChannelData[j][i] = inputChannelData[j][i];					
+						//				}
+						recBufferL[recordedSampleNum] = inputChannelData[0][i];
+						recBufferR[recordedSampleNum] = inputChannelData[1][i];
+					}
+					++recordedSampleNum;			
 		
-		//std::async(std::launch::async, &LoopbackTester::processSamples, this, (float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
-		notify();
+					auto outputSampleL = (playingSampleNum <= outData.getNumSamples()) ? playBufferL[playingSampleNum] : 0.0f;
+					auto outputSampleR = (playingSampleNum <= outData.getNumSamples()) ? playBufferR[playingSampleNum] : 0.0f;
+		
+					outputChannelData[0][i] = (volume / 100.0) * (filter.processSample(inputChannelData[0][i]));
+					outputChannelData[1][i] = (volume / 100.0) * (filter.processSample(inputChannelData[1][i]));
+		
+//					outputChannelData[0][i] = inputChannelData[0][i];
+//					outputChannelData[1][i] = inputChannelData[1][i];
+		
+					++playingSampleNum;
+				}		
+				notify();
+		
+				recordedSampleNum = 0;
+				playingSampleNum = 0;
 
-		recordedSampleNum = 0;
-		playingSampleNum = 0;
-    }		
+//		dsp::AudioBlock<float> inBlock((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
+//		dsp::AudioBlock<float> outBlock((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
+//		auto* inout = channelPointers.getData();
+//		auto n = inBlock.getNumSamples();
+//
+//		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch) // [10]
+//			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
+//
+//		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+//			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size())); // [11]
+//
+//
+////		iir->process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved)); // [12]
+//		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+//
+//		for (size_t ch = 0; ch < inData.getNumChannels(); ++ch) // [13]
+//			inout[ch] = outBlock.getChannelPointer(ch);
+//
+//		AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+//			const_cast<float**> (inout),
+//			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size())); // [14]
+
+		auto end = std::chrono::high_resolution_clock::now();
+		auto time = end - start;
+	}
 
 private:
 //    TextEditor& resultsBox;
@@ -181,6 +215,7 @@ private:
     double sampleRate     = 0.0;
     bool testIsRunning    = false;
     int deviceInputLatency, deviceOutputLatency, numOfSamples;
+	float volume;
 
 	arm_lms_norm_instance_f32 lmsNorm_instance;
 	float y[FRAMES_PER_BUFFER] = { 0 };			// Output data
@@ -192,6 +227,16 @@ private:
 
 	dsp::FIR::Coefficients<float> coeffs;
 	dsp::FIR::Filter<float> filter;
+
+
+
+	dsp::IIR::Coefficients<float>::Ptr iirCoefficients;         // [1]
+	std::unique_ptr<dsp::IIR::Filter<dsp::SIMDRegister<float>>> iir;
+	dsp::AudioBlock<dsp::SIMDRegister<float>> interleaved;           // [2]
+	dsp::AudioBlock<float> zero;
+	HeapBlock<char> interleavedBlockData, zeroData;        // [3]
+	HeapBlock<const float*> channelPointers{ dsp::SIMDRegister<float>::size() };
+	dsp::ProcessorDuplicator < dsp::IIR::Filter<dsp::SIMDRegister<float>>, dsp::IIR::Coefficients<float>> stereoIIR;
     //==============================================================================
 
 	inline void processSamples(float *x, float *d) {
@@ -210,12 +255,27 @@ private:
 };
 
 //==============================================================================
-class ActiveNoiseCancelling  : public Component
+class ActiveNoiseCancelling  : public Component,
+								public Slider::Listener
 {
 public:
 	ActiveNoiseCancelling()
     {
         setOpaque (true);
+	
+		volumeLabel.setText("Volume: ", dontSendNotification);		
+		volumeLabel.attachToComponent(&volumeSlider, true); // [4]
+		volumeLabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
+
+		volumeSlider.setRange(0, 100);          // [1]
+		volumeSlider.setTextValueSuffix(" %");     // [2]
+		volumeSlider.addListener(this);             // [3]
+		volumeSlider.setValue(100); // [5]
+		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 160, volumeSlider.getTextBoxHeight());
+//		volumeSlider.onValueChange = [this] { latencyTester->setVolume(volumeSlider.getValue()); };
+
+		addAndMakeVisible(volumeLabel);
+		addAndMakeVisible(volumeSlider);
 
         liveAudioScroller.reset (new LiveScrollingAudioDisplay());
 		spectrumAnalyser.reset(new AnalyserComponent());
@@ -276,6 +336,15 @@ public:
 		spectrumAnalyser.reset();		
     }
 
+	void sliderValueChanged(Slider* slider) override
+	{
+		if (slider = &volumeSlider) {
+			if (latencyTester.get() != nullptr) {
+				latencyTester->setVolume(volumeSlider.getValue());
+			}
+		}
+	}
+
     void startTest()
     {
         if (latencyTester.get() == nullptr)
@@ -295,6 +364,10 @@ public:
     void resized() override
     {
         auto b = getLocalBounds().reduced (5);
+
+		volumeSlider.setBounds(b.getX() + 120, b.getY(), b.getWidth() - 120, b.getHeight() / 20);
+		b.removeFromTop(b.getHeight() / 20);
+		b.removeFromTop(3);
 
         if (liveAudioScroller.get() != nullptr)
         {
@@ -327,6 +400,9 @@ private:
     TextButton startTestButton  { "Test Latency" };
 	Label SNR_Value;
     //TextEditor resultsBox;
+
+	Slider volumeSlider;
+	Label volumeLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveNoiseCancelling)
 };

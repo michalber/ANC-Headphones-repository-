@@ -88,7 +88,7 @@ namespace Adaptive {
 	NLMS::NLMS() : NumOfTaps(100), mu(0.5), a(0.0001)
 	{
 		//liquid_firdes_kaiser(NUM_OF_TAPS, 0.5, 60.0f, 0.0f, lmsNormCoeff_f32);
-		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, FRAMES_PER_BUFFER);
+		//arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, FRAMES_PER_BUFFER);
 
 		//liquid_firdes_kaiser(NUM_OF_TAPS, 0.5, 60.0f, 0.0f, antyaliasingFilterCoeff);
 		//arm_fir_init_f32(&antyaliasingFIR_instance, 60, (float *)antyaliasingFilterCoeff, antyaliasingFIRStateF32, FRAMES_PER_BUFFER);
@@ -102,7 +102,7 @@ namespace Adaptive {
 	NLMS::NLMS(int buffSize) : bufferSize(buffSize)
 	{
 		//liquid_firdes_kaiser(NUM_OF_TAPS, 0.5, 60.0f, 0.0f, lmsNormCoeff_f32);
-		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, bufferSize);
+		//arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, bufferSize);
 
 		//liquid_firdes_kaiser(NUM_OF_TAPS, 0.5, 60.0f, 0.0f, antyaliasingFilterCoeff);
 		//arm_fir_init_f32(&antyaliasingFIR_instance, 60, (float *)antyaliasingFilterCoeff, antyaliasingFIRStateF32, FRAMES_PER_BUFFER);
@@ -119,7 +119,7 @@ namespace Adaptive {
 	NLMS::NLMS(int filterSize, float stepSize, float RFactor) : NumOfTaps(filterSize), mu(stepSize), a(RFactor)
 	{
 		//liquid_firdes_kaiser(NUM_OF_TAPS, 0.5, 60.0f, 0.0f, lmsNormCoeff_f32);
-		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, FRAMES_PER_BUFFER / 2);
+		//arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, FRAMES_PER_BUFFER / 2);
 
 		//liquid_firdes_kaiser(NUM_OF_TAPS, 0.5, 60.0f, 0.0f, antyaliasingFilterCoeff);
 		//arm_fir_init_f32(&antyaliasingFIR_instance, 60, (float *)antyaliasingFilterCoeff, antyaliasingFIRStateF32, FRAMES_PER_BUFFER);
@@ -219,13 +219,13 @@ namespace Adaptive {
 		//	tempX[i] = d[2 * i + 1];
 		//}
 
-		arm_lms_norm_f32(
-			&lmsNorm_instance,			/* LMSNorm instance */
-			x,							/* Input signal */
-			d,							/* Reference Signal */
-			Out,						/* Converged Signal */
-			errOutput,					/* Error Signal, this will become small as the signal converges */
-			bufferSize);				/* BlockSize */
+		//arm_lms_norm_f32(
+		//	&lmsNorm_instance,			/* LMSNorm instance */
+		//	x,							/* Input signal */
+		//	d,							/* Reference Signal */
+		//	Out,						/* Converged Signal */
+		//	errOutput,					/* Error Signal, this will become small as the signal converges */
+		//	bufferSize);				/* BlockSize */
 
 //		memcpy(outL, Out, bufferSize * sizeof(float));
 //		memcpy(outR, Out, bufferSize * sizeof(float));
