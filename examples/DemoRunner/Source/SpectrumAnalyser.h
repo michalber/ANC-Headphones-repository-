@@ -52,17 +52,26 @@
 //==============================================================================
 class AnalyserComponent : public AudioIODeviceCallback,	
 							public Component,
-							private Timer
+							private Timer,
+							public Slider::Listener
 {
 public:
 	AnalyserComponent() : forwardFFT_L(fftOrder), forwardFFT_P(fftOrder),
 							window_L(fftSize, dsp::WindowingFunction<float>::hann), window_P(fftSize, dsp::WindowingFunction<float>::hann)
 	{
 		setOpaque(true);
+		scaleSlider.setSliderStyle(Slider::SliderStyle::LinearVertical);
+		scaleSlider.setRange(-100, 0);
+		scaleSlider.setValue(0);
+		addAndMakeVisible(scaleSlider);
 		startTimerHz(50);			
 	}
 
 	//==============================================================================
+	void sliderValueChanged(Slider* slider) override
+	{
+	}
+
 	void audioDeviceAboutToStart(AudioIODevice*) override
 	{		
 	}
@@ -204,6 +213,8 @@ public:
 
 private:
 	CriticalSection lock;
+
+	Slider scaleSlider;
 
 	dsp::FFT forwardFFT_L;
 	dsp::WindowingFunction<float> window_L;
