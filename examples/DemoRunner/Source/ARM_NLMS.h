@@ -499,3 +499,62 @@ inline void arm_lms_norm_f32(
 /**
    * @} end of LMS_NORM group
    */
+
+
+
+   /**
+	* @brief  Caluclation of SNR
+	* @param  float* 	Pointer to the reference buffer
+	* @param  float*	Pointer to the test buffer
+	* @param  uint32_t	total number of samples
+	* @return float	SNR
+	* The function Caluclates signal to noise ratio for the reference output
+	* and test output
+	*/
+
+float arm_snr_f32(float *pRef, float *pTest, uint32_t buffSize)
+{
+	float EnergySignal = 0.0, EnergyError = 0.0;
+	uint32_t i;
+	float SNR;
+	int temp;
+	int *test;
+
+	for (i = 0; i < buffSize; i++)
+	{
+		/* Checking for a NAN value in pRef array */
+		test = (int *)(&pRef[i]);
+		temp = *test;
+
+		if (temp == 0x7FC00000)
+		{
+			return(0);
+		}
+
+		/* Checking for a NAN value in pTest array */
+		test = (int *)(&pTest[i]);
+		temp = *test;
+
+		if (temp == 0x7FC00000)
+		{
+			return(0);
+		}
+		EnergySignal += pRef[i] * pRef[i];
+		EnergyError += (pRef[i] - pTest[i]) * (pRef[i] - pTest[i]);
+	}
+
+	/* Checking for a NAN value in EnergyError */
+	test = (int *)(&EnergyError);
+	temp = *test;
+
+	if (temp == 0x7FC00000)
+	{
+		return(0);
+	}
+
+
+	SNR = 10 * log10(EnergySignal / EnergyError);
+
+	return (SNR);
+
+}

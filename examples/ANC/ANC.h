@@ -80,6 +80,7 @@ public:
 #else
 			processSamples((float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
 #endif
+//			SNR = arm_snr_f32((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0), numOfSamples);
 //			auto end = std::chrono::high_resolution_clock::now();
 //			auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();			
 		}
@@ -101,6 +102,56 @@ public:
 		volume = vol;
 	}
 
+	float getSNR() {
+		return SNR.load();
+	}
+
+	void pushNextSamplesIntoFifo(float *samples, bool channel, int dataSize) noexcept
+	{
+		// if the fifo contains enough data, set a flag to say
+		// that the next frame should now be rendered..
+		if (!channel) {
+			if (fifoIndex_L + dataSize >= 88200)
+			{
+				if (!nextSNRBlockReady_L)
+				{					
+					nextSNRBlockReady_L = true;
+				}
+			}
+			else {
+				//fifo_L[fifoIndex_L++] = sample;
+				memcpy(&fifo_L[0] + fifoIndex_L, samples, dataSize * sizeof(float));
+				fifoIndex_L += dataSize;
+			}
+		}
+		if (channel) {
+			if (fifoIndex_P + dataSize >= 88200)
+			{
+				if (!nextSNRBlockReady_P)
+				{
+					nextSNRBlockReady_P = true;
+				}			
+			}
+			else {
+
+				//			fifo_P[fifoIndex_P++] = sample;
+				memcpy(&fifo_P[0] + fifoIndex_P, samples, dataSize * sizeof(float));
+				fifoIndex_P += dataSize;
+			}
+		}
+		if (nextSNRBlockReady_L && nextSNRBlockReady_P)
+		{
+			SNR = arm_snr_f32(fifo_L, fifo_P, 88200);
+
+			zeromem(fifo_L, sizeof(fifo_L));
+			zeromem(fifo_P, sizeof(fifo_P));
+
+			fifoIndex_L = 0;
+			fifoIndex_P = 0;
+			nextSNRBlockReady_L = false;
+			nextSNRBlockReady_P = false;
+		}
+	}
     //==============================================================================
     void audioDeviceAboutToStart (AudioIODevice* device) override
     {
@@ -148,7 +199,7 @@ public:
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
 		const ScopedLock sl(lock);
-		auto start = std::chrono::high_resolution_clock::now();
+//		auto start = std::chrono::high_resolution_clock::now();
 #if !JUCE_USE_SIMD
 
 				auto* playBufferL = outData.getReadPointer(0);
@@ -188,6 +239,9 @@ public:
 		auto* inout = channelPointers.getData();
 		auto n = inBlock.getNumSamples();
 	
+		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
+		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
+
 		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
 			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
 
@@ -204,39 +258,49 @@ public:
 			const_cast<float**> (inout),
 			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
 
-		FloatVectorOperations::multiply((float*)inout[0], volume, numOfSamples);
-		FloatVectorOperations::multiply((float*)inout[1], volume, numOfSamples);
+		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
+		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
 
 		notify();
 #endif
-		auto end = std::chrono::high_resolution_clock::now();
-		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+//		auto end = std::chrono::high_resolution_clock::now();
+//		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 	}
 
 private:
     CriticalSection lock;
+
+	std::atomic<float> SNR = 0.0f;
 
     int playingSampleNum  = 0;
     int recordedSampleNum = -1;
     double sampleRate     = 0.0;
     bool testIsRunning    = false;
     int deviceInputLatency, deviceOutputLatency, numOfSamples;
-	float volume;
+	float volume = 1;
 
 	arm_lms_norm_instance_f32 lmsNorm_instance;
-	float y[FRAMES_PER_BUFFER] = { 0 };			// Output data
-	float e[FRAMES_PER_BUFFER] = { 0 };			// Error data
-	float Out[FRAMES_PER_BUFFER] = { 0 };
-	float errOutput[FRAMES_PER_BUFFER] = { 0 };
-	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.1 };
-	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.1 };
+	float y[FRAMES_PER_BUFFER] = { 0 };								// Output data
+	float e[FRAMES_PER_BUFFER] = { 0 };								// Error data
+	float Out[FRAMES_PER_BUFFER] = { 0 };							// Output data
+	float errOutput[FRAMES_PER_BUFFER] = { 0 };						// Error data
+	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.1 };	// Array for NLMS algorithm
+	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.1 };					// NLMS Coefficients
 	
+	float fifo_L[88200];
+	int fifoIndex_L = 0;
+	bool nextSNRBlockReady_L = false;
+	
+	float fifo_P[88200];
+	int fifoIndex_P = 0;
+	bool nextSNRBlockReady_P = false;
+
 #if JUCE_USE_SIMD
 	dsp::AudioBlock<float> inBlock;
 	dsp::AudioBlock<float> outBlock;
-	dsp::AudioBlock<dsp::SIMDRegister<float>> interleaved;           // [2]
+	dsp::AudioBlock<dsp::SIMDRegister<float>> interleaved;           
 	dsp::AudioBlock<float> zero;
-	HeapBlock<char> interleavedBlockData, zeroData;        // [3]
+	HeapBlock<char> interleavedBlockData, zeroData;        
 	HeapBlock<const float*> channelPointers{ dsp::SIMDRegister<float>::size() };
 	dsp::ProcessorDuplicator < dsp::FIR::Filter<dsp::SIMDRegister<float>>, dsp::FIR::Coefficients<float>> stereoFIR;
 #else
@@ -269,26 +333,41 @@ private:
 
 //==============================================================================
 class ActiveNoiseCancelling  : public Component,
+								private Timer,
 								public Slider::Listener
 {
 public:
 	ActiveNoiseCancelling()
     {
         setOpaque (true);
-	
+		
+		startTimerHz(2);
+
+		// Set up Volume Label text box 
 		volumeLabel.setText("Volume: ", dontSendNotification);		
-		volumeLabel.attachToComponent(&volumeSlider, true); // [4]
+		volumeLabel.attachToComponent(&volumeSlider, true);
 		volumeLabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
 
-		volumeSlider.setRange(0, 1);          // [1]
-		volumeSlider.setTextValueSuffix(" *100%");     // [2]
-		volumeSlider.addListener(this);             // [3]
-		volumeSlider.setValue(1); // [5]
+		// Set up Volume Slider box 
+		volumeSlider.setRange(0, 1);		
+		volumeSlider.addListener(this);
+		volumeSlider.setValue(1);
 		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
+		
+		// Set up FFT Scale Slider box 
+		FFTScaleSlider.setRange(-79, 0);
+		FFTScaleSlider.setTextValueSuffix(" dB");
+		FFTScaleSlider.addListener(this);
+		FFTScaleSlider.setValue(0);
+		FFTScaleSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 30, FFTScaleSlider.getTextBoxHeight());
+		FFTScaleSlider.setSliderStyle(Slider::LinearVertical);
 
+		// Add components to be visible
+		addAndMakeVisible(FFTScaleSlider);
 		addAndMakeVisible(volumeLabel);
 		addAndMakeVisible(volumeSlider);
 
+		// Reset and add main audio processing components
         liveAudioScroller.reset (new LiveScrollingAudioDisplay());
 		spectrumAnalyser.reset(new AnalyserComponent());
 		addAndMakeVisible(spectrumAnalyser.get());
@@ -299,7 +378,7 @@ public:
 		SNR_Value.setColour(SNR_Value.textColourId, Colour(137, 176, 196));
 		SNR_Value.setJustificationType(Justification::centred);
 		SNR_Value.setEditable(false);
-		SNR_Value.setText("ELO", dontSendNotification);
+		SNR_Value.setText("Run ANC to see results", dontSendNotification);
 
         addAndMakeVisible (startTestButton);
         startTestButton.onClick = [this] { startTest(); };
@@ -345,11 +424,22 @@ public:
 		spectrumAnalyser.reset();		
     }
 
+	void timerCallback() override
+	{
+		if (latencyTester.get() != nullptr) 
+			SNR_Value.setText(String("SNR = ") + String(latencyTester->getSNR()) + String(" dB"),NotificationType::dontSendNotification);
+	}
+
 	void sliderValueChanged(Slider* slider) override
 	{
 		if (slider == &volumeSlider) {
 			if (latencyTester.get() != nullptr) {
 				latencyTester->setVolume(volumeSlider.getValue());
+			}
+		}
+		else if (slider == &FFTScaleSlider) {
+			if (spectrumAnalyser.get() != nullptr) {
+				spectrumAnalyser->setScaleValue(FFTScaleSlider.getValue());
 			}
 		}
 	}
@@ -393,7 +483,8 @@ public:
 		b.removeFromBottom(10);
 
         //resultsBox.setBounds (b);
-		spectrumAnalyser->setBounds(b);
+		FFTScaleSlider.setBounds(b.getX(), b.getY(), 30, b.getHeight());
+		spectrumAnalyser->setBounds(b.getX() + 30, b.getY(), b.getWidth() - 30, b.getHeight());
     }
 
 private:
@@ -412,11 +503,14 @@ private:
 
     TextButton startTestButton  { "Test Latency" };
 	TextButton startVisualizigData{ "Run/Stop Charts" };
+
 	Label SNR_Value;
     //TextEditor resultsBox;
 
 	Slider volumeSlider;
 	Label volumeLabel;
+
+	Slider FFTScaleSlider;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveNoiseCancelling)
 };

@@ -52,25 +52,17 @@
 //==============================================================================
 class AnalyserComponent : public AudioIODeviceCallback,	
 							public Component,
-							private Timer,
-							public Slider::Listener
+							private Timer
 {
 public:
 	AnalyserComponent() : forwardFFT_L(fftOrder), forwardFFT_P(fftOrder),
 							window_L(fftSize, dsp::WindowingFunction<float>::hann), window_P(fftSize, dsp::WindowingFunction<float>::hann)
 	{
 		setOpaque(true);
-		scaleSlider.setSliderStyle(Slider::SliderStyle::LinearVertical);
-		scaleSlider.setRange(-100, 0);
-		scaleSlider.setValue(0);
-		addAndMakeVisible(scaleSlider);
 		startTimerHz(50);			
 	}
 
 	//==============================================================================
-	void sliderValueChanged(Slider* slider) override
-	{
-	}
 
 	void audioDeviceAboutToStart(AudioIODevice*) override
 	{		
@@ -97,6 +89,10 @@ public:
 	}
 
 	//==============================================================================
+	void setScaleValue(float val) {
+		scaleValue = val;
+	}
+
 	void paint(Graphics& g) override
 	{
 		g.fillAll(Colour(39, 50, 56));
@@ -135,7 +131,7 @@ public:
 
 			fifo_L[fifoIndex_L++] = sample;
 		}
-		else {
+		if(channel) {
 			if (fifoIndex_P == fftSize)
 			{
 				if (!nextFFTBlockReady_P)
@@ -162,8 +158,8 @@ public:
 		forwardFFT_L.performFrequencyOnlyForwardTransform(fftData_L);
 		forwardFFT_P.performFrequencyOnlyForwardTransform(fftData_P);
 
-		auto mindB = -75.0f;
-		auto maxdB = 0.0f;
+		auto mindB = -80.0f;
+		auto maxdB = scaleValue;
 
 		for (int i = 0; i < scopeSize; ++i)
 		{
@@ -185,11 +181,22 @@ public:
 
 	void drawFrame(Graphics& g)
 	{
+		auto width = getLocalBounds().getWidth() - 20;
+		auto height = getLocalBounds().getHeight();
+
+//		g.setColour(findColour(ResizableWindow::backgroundColourId));
+//		for (int i = 0; i < width; i+= width/50)
+//		{			
+//			g.drawVerticalLine(i, 0, height);
+//		}
+//		g.setColour(Colours::dimgrey);
+//		for (int i = 0; i < width; i += width / 10)
+//		{
+////			g.drawText(String(i), Rectangle<float>(i - 30, 10, 50, 10), Justification::centred);
+//		}
+
 		for (int i = 1; i < scopeSize; ++i)
 		{
-			auto width = getLocalBounds().getWidth();
-			auto height = getLocalBounds().getHeight();
-
 			g.setColour(Colour(137, 176, 196));
 			g.drawLine({ (float)jmap(i - 1, 0, scopeSize - 1, 0, width),
 								  jmap(scopeData_L[i - 1], 0.0f, 1.0f, (float)height, 0.0f),
@@ -214,7 +221,7 @@ public:
 private:
 	CriticalSection lock;
 
-	Slider scaleSlider;
+	float scaleValue = 0.0f;
 
 	dsp::FFT forwardFFT_L;
 	dsp::WindowingFunction<float> window_L;
