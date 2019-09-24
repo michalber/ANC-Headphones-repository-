@@ -51,21 +51,23 @@
 #include "../Assets/DemoUtilities.h"
 #include "../Assets/AudioLiveScrollingDisplay.h"
 #include "../DemoRunner/Source/SpectrumAnalyser.h"
+#include "../DemoRunner/Source/FilterVisualizer.h"
 
-#include "../DemoRunner/Source/NLMS.h"
+#include "../DemoRunner/Source/ARM_NLMS.h"
+#include "../DemoRunner/Source/config.h"
 
 #include <future>
 
 //==============================================================================
-class LoopbackTester : public AudioIODeviceCallback,
+class ANCInstance : public AudioIODeviceCallback,
 						private Thread
 {
 public:
-	LoopbackTester() :Thread("NLMS Processing Thread")
+	ANCInstance() :Thread("NLMS Processing Thread")
     {
 		setPriority(realtimeAudioPriority);
 	}
-	~LoopbackTester() {
+	~ANCInstance() {
 		stopThread(-1);
 	}
 
@@ -185,10 +187,13 @@ public:
 		spec.maximumBlockSize = numOfSamples;
 		spec.sampleRate = sampleRate;		
 
-		arm_lms_norm_init_f32(&lmsNorm_instance, 200, lmsNormCoeff_f32, lmsStateF32, 0.001, numOfSamples);
+		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, numOfSamples);
 
-		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, 200);
+		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
 		stereoFIR.prepare(spec);
+
+		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 14000.0f, 20);
+		stereoIIR.prepare(spec);
 #endif
 		startThread();
     }
@@ -244,13 +249,16 @@ public:
 
 		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
 			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
-
+		
 		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
 		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-
-//		iir->process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+				
 		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
-	
+		
+		notify();
+
+//		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+
 		for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
 			inout[ch] = outBlock.getChannelPointer(ch);
 			
@@ -258,10 +266,11 @@ public:
 			const_cast<float**> (inout),
 			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
 
+		FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
+
 		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
 		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
 
-		notify();
 #endif
 //		auto end = std::chrono::high_resolution_clock::now();
 //		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -302,7 +311,8 @@ private:
 	dsp::AudioBlock<float> zero;
 	HeapBlock<char> interleavedBlockData, zeroData;        
 	HeapBlock<const float*> channelPointers{ dsp::SIMDRegister<float>::size() };
-	dsp::ProcessorDuplicator < dsp::FIR::Filter<dsp::SIMDRegister<float>>, dsp::FIR::Coefficients<float>> stereoFIR;
+	dsp::ProcessorDuplicator<dsp::FIR::Filter<dsp::SIMDRegister<float>>, dsp::FIR::Coefficients<float>> stereoFIR;
+	dsp::ProcessorDuplicator<dsp::IIR::Filter<dsp::SIMDRegister<float>>, dsp::IIR::Coefficients<float>> stereoIIR;
 #else
 	AudioBuffer<float> inData, outData;
 	dsp::FIR::Coefficients<float> coeffs;
@@ -322,13 +332,13 @@ private:
 			numOfSamples);				/* BlockSize */
 
 #if JUCE_USE_SIMD
-		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, 200);
+		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
 #else
-		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, 200 * sizeof(float));	
+		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
 #endif
 	}
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LoopbackTester)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ANCInstance)
 };
 
 //==============================================================================
@@ -354,13 +364,14 @@ public:
 		volumeSlider.setValue(1);
 		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 		
-		// Set up FFT Scale Slider box 
-		FFTScaleSlider.setRange(-79, 0);
+		// Set up FFT Scale Slider box
+		FFTScaleSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 30, FFTScaleSlider.getTextBoxHeight());
+		FFTScaleSlider.setSliderStyle(Slider::TwoValueVertical);
+		FFTScaleSlider.setRange(-99, 0, 1);
 		FFTScaleSlider.setTextValueSuffix(" dB");
 		FFTScaleSlider.addListener(this);
-		FFTScaleSlider.setValue(0);
-		FFTScaleSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 30, FFTScaleSlider.getTextBoxHeight());
-		FFTScaleSlider.setSliderStyle(Slider::LinearVertical);
+		FFTScaleSlider.setMinValue(-99);
+		FFTScaleSlider.setMaxValue(0);
 
 		// Add components to be visible
 		addAndMakeVisible(FFTScaleSlider);
@@ -372,6 +383,10 @@ public:
 		spectrumAnalyser.reset(new AnalyserComponent());
 		addAndMakeVisible(spectrumAnalyser.get());
 		addAndMakeVisible (liveAudioScroller.get());
+
+
+		filterVisualizer.reset(new FilterVisualizer());
+		addAndMakeVisible(filterVisualizer.get());
 		
 		addAndMakeVisible(SNR_Value);
 		SNR_Value.setColour(SNR_Value.backgroundColourId, Colour(39, 50, 56));
@@ -417,42 +432,43 @@ public:
     ~ActiveNoiseCancelling()
     {
         audioDeviceManager.removeAudioCallback (liveAudioScroller.get());
-        audioDeviceManager.removeAudioCallback (latencyTester    .get());
+        audioDeviceManager.removeAudioCallback (ANC.get());
 		audioDeviceManager.removeAudioCallback(spectrumAnalyser.get());
-        latencyTester    .reset();
+		ANC.reset();
         liveAudioScroller.reset();
 		spectrumAnalyser.reset();		
+		filterVisualizer.reset();
     }
 
 	void timerCallback() override
 	{
-		if (latencyTester.get() != nullptr) 
-			SNR_Value.setText(String("SNR = ") + String(latencyTester->getSNR()) + String(" dB"),NotificationType::dontSendNotification);
+		if (ANC.get() != nullptr)
+			SNR_Value.setText(String("SNR = ") + String(ANC->getSNR()) + String(" dB"),NotificationType::dontSendNotification);
 	}
 
 	void sliderValueChanged(Slider* slider) override
 	{
 		if (slider == &volumeSlider) {
-			if (latencyTester.get() != nullptr) {
-				latencyTester->setVolume(volumeSlider.getValue());
+			if (ANC.get() != nullptr) {
+				ANC->setVolume(volumeSlider.getValue());
 			}
 		}
 		else if (slider == &FFTScaleSlider) {
 			if (spectrumAnalyser.get() != nullptr) {
-				spectrumAnalyser->setScaleValue(FFTScaleSlider.getValue());
+				spectrumAnalyser->setScaleValue(FFTScaleSlider.getMinValue(), FFTScaleSlider.getMaxValue());
 			}
 		}
 	}
 
     void startTest()
     {
-        if (latencyTester.get() == nullptr)
+        if (ANC.get() == nullptr)
         {
-            latencyTester.reset (new LoopbackTester());
-            audioDeviceManager.addAudioCallback (latencyTester.get());
+			ANC.reset (new ANCInstance());
+            audioDeviceManager.addAudioCallback (ANC.get());
         }
 
-        latencyTester->beginTest();
+		ANC->beginTest();
     }
 
     void paint (Graphics& g) override
@@ -472,7 +488,7 @@ public:
 
         if (liveAudioScroller.get() != nullptr)
         {
-            liveAudioScroller->setBounds (b.removeFromTop (b.getHeight() / 3));
+            liveAudioScroller->setBounds (b.removeFromTop (b.getHeight() / 8));
             b.removeFromTop (3);
         }
 
@@ -481,10 +497,13 @@ public:
 
 		SNR_Value.setBounds(b.removeFromBottom(b.getHeight() / 10));
 		b.removeFromBottom(10);
+        
+		FFTScaleSlider.setBounds(b.getX(), b.getY(), 30, b.getHeight() / 2);
+		spectrumAnalyser->setBounds(b.getX() + 30, b.getY(), b.getWidth() - 30, b.getHeight() / 2);
 
-        //resultsBox.setBounds (b);
-		FFTScaleSlider.setBounds(b.getX(), b.getY(), 30, b.getHeight());
-		spectrumAnalyser->setBounds(b.getX() + 30, b.getY(), b.getWidth() - 30, b.getHeight());
+		b.removeFromTop(b.getHeight() / 2  + 3);
+
+		filterVisualizer->setBounds(b);
     }
 
 private:
@@ -497,11 +516,12 @@ private:
 
 	bool isVisualisingRunning = true;
 
-    std::unique_ptr<LoopbackTester> latencyTester;
+    std::unique_ptr<ANCInstance> ANC;
     std::unique_ptr<LiveScrollingAudioDisplay> liveAudioScroller;
 	std::unique_ptr<AnalyserComponent> spectrumAnalyser;
+	std::unique_ptr<FilterVisualizer> filterVisualizer;
 
-    TextButton startTestButton  { "Test Latency" };
+    TextButton startTestButton  { "Run ANC" };
 	TextButton startVisualizigData{ "Run/Stop Charts" };
 
 	Label SNR_Value;

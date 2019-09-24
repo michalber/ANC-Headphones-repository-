@@ -89,8 +89,9 @@ public:
 	}
 
 	//==============================================================================
-	void setScaleValue(float val) {
-		scaleValue = val;
+	void setScaleValue(float valMin, float valMax) {
+		scaleValueMin = valMin;
+		scaleValueMax = valMax;
 	}
 
 	void paint(Graphics& g) override
@@ -158,8 +159,8 @@ public:
 		forwardFFT_L.performFrequencyOnlyForwardTransform(fftData_L);
 		forwardFFT_P.performFrequencyOnlyForwardTransform(fftData_P);
 
-		auto mindB = -80.0f;
-		auto maxdB = scaleValue;
+		auto mindB = scaleValueMin;
+		auto maxdB = scaleValueMax;
 
 		for (int i = 0; i < scopeSize; ++i)
 		{
@@ -221,7 +222,8 @@ public:
 private:
 	CriticalSection lock;
 
-	float scaleValue = 0.0f;
+	float scaleValueMin = -100.0f;
+	float scaleValueMax = 0.0f;
 
 	dsp::FFT forwardFFT_L;
 	dsp::WindowingFunction<float> window_L;
