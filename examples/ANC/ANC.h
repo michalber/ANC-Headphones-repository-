@@ -65,6 +65,7 @@ class ANCInstance : public AudioIODeviceCallback,
 public:
 	ANCInstance() :Thread("NLMS Processing Thread")
     {
+		SNR.store(0);
 		setPriority(realtimeAudioPriority);
 	}
 	~ANCInstance() {
@@ -288,7 +289,7 @@ public:
 private:
     CriticalSection lock;
 
-	std::atomic<float> SNR = 0.0f;
+	std::atomic<float> SNR;
 
     int playingSampleNum  = 0;
     int recordedSampleNum = -1;
