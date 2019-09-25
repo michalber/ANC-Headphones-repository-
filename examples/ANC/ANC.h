@@ -89,10 +89,15 @@ public:
 	}
 
     //==============================================================================
+#if JUCE_USE_SIMD
 	dsp::FIR::Coefficients<float>* getCoeffs() {
-		return stereoFIR.state.getObject();
+		return stereoFIR.state.getObject();		
 	}
-
+#else 
+	dsp::FIR::Coefficients<float>* getCoeffs() {
+		return coeffs;
+	}
+#endif
     void beginTest()
     {
         //resultsBox.moveCaretToEnd();
@@ -336,7 +341,7 @@ private:
 			numOfSamples);				/* BlockSize */
 
 #if JUCE_USE_SIMD
-		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
 		memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
 #else
 		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
