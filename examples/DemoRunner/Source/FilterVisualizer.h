@@ -12,23 +12,21 @@
 
 #include "../examples/Assets/DemoUtilities.h"
 
-class  FilterVisualizer :  public Component
+class  FilterVisualizer :  public Component,
+							private Timer
 {
     struct Settings {
         float fMin = 20.0f;    // minimum displayed frequency
         float fMax = 20000.0f; // maximum displayed frequency
-        float dbMin = -15.0f;  // min displayed dB
-        float dbMax = 5.0f;   // max displayed dB
+        float dbMin = -50.0f;  // min displayed dB
+        float dbMax = 30.0f;   // max displayed dB
         float gridDiv = 5.0f;  // how many dB per divisions (between grid lines)
         bool gainHandleLin = false; // are the filter gain sliders linear?
     };
     
     struct FilterWithSlidersAndColour {
-        dsp::IIR::Coefficients<float>::Ptr* coefficients;
+        dsp::FIR::Coefficients<float>::Ptr* coefficients;
         Colour colour;
-        Slider* frequencySlider = nullptr;
-        Slider* gainSlider = nullptr;
-        Slider* qSlider = nullptr;
         float* overrideGain = nullptr;
     };
     
@@ -40,14 +38,31 @@ class  FilterVisualizer :  public Component
     const float OH = 3.0f;
     
 public:
-    FilterVisualizer() : Component(), overallGainInDb(0.0f), sampleRate(48000) {};
-    FilterVisualizer(float fMin, float fMax, float dbMin, float dbMax, float gridDiv, bool gainHandleLin = false) : Component(), overallGainInDb(0.0f), sampleRate(48000), s{fMin, fMax, dbMin, dbMax, gridDiv, gainHandleLin} {};
+    FilterVisualizer() : Component(), overallGainInDb(0.0f), sampleRate(48000) 
+	{
+		startTimerHz(2);
+	}
+    FilterVisualizer(float fMin, float fMax, float dbMin, float dbMax, float gridDiv, bool gainHandleLin = false) : Component(), overallGainInDb(0.0f), sampleRate(48000), s{fMin, fMax, dbMin, dbMax, gridDiv, gainHandleLin} 
+	{
+		startTimerHz(2);	
+	}
     ~FilterVisualizer() {};
     
+	void updateCoefficients(dsp::FIR::Coefficients<float>::Ptr newCoeffs) {
+		FilterWithSlidersAndColour& handle(elements.getReference(0));
+		dsp::FIR::Coefficients<float>::Ptr coeffs = *handle.coefficients;
+		coeffs = newCoeffs;
+	}
+
+	void timerCallback() override
+	{
+		repaint();
+	}
 
     void paint (Graphics& g) override
     {
-        g.setColour(Colours::steelblue.withMultipliedAlpha(0.01f));
+        //g.setColour(Colours::steelblue.withMultipliedAlpha(0.01f));
+		g.setColour(Colour(39, 50, 56));
         g.fillAll();
         
         //int width = getWidth();
@@ -60,7 +75,8 @@ public:
         int numgridlines = dyn/s.gridDiv+1;
         
         //g.setFont(Font(getLookAndFeel().getTypefaceForFont (Font(10.0f, 1)));
-        g.setColour (Colours::white);
+        //g.setColour (Colours::white);
+		g.setColour(Colour(137, 176, 196));
         for (int i=0; i < numgridlines; i++)
         {
             float db_val = s.dbMax - i*s.gridDiv;
@@ -98,13 +114,16 @@ public:
         }
 
 
-        g.setColour (Colours::steelblue.withMultipliedAlpha(0.8f));
+        //g.setColour (Colours::steelblue.withMultipliedAlpha(0.8f));
+		g.setColour(Colour(204, 238, 255).withMultipliedAlpha(0.3f));
         g.strokePath (dbGridPath, PathStrokeType (0.5f));
 
-        g.setColour(Colours::steelblue.withMultipliedAlpha(0.9f));
+        //g.setColour(Colours::steelblue.withMultipliedAlpha(0.9f));
+		g.setColour(Colour(204, 238, 255).withMultipliedAlpha(0.2f));
         g.strokePath (hzGridPathBold, PathStrokeType (1.0f));
 
-        g.setColour(Colours::steelblue.withMultipliedAlpha(0.8f));
+        //g.setColour(Colours::steelblue.withMultipliedAlpha(0.8f));
+		g.setColour(Colour(204, 238, 255).withMultipliedAlpha(0.3f));
         g.strokePath (hzGridPath, PathStrokeType (0.5f));
                
         
@@ -129,13 +148,13 @@ public:
             magnitude.clear();
             
             FilterWithSlidersAndColour& handle(elements.getReference(b));
-            dsp::IIR::Coefficients<float>::Ptr coeffs = *handle.coefficients;
+            dsp::FIR::Coefficients<float>::Ptr coeffs = *handle.coefficients;
             //calculate magnitude response
             if (coeffs != nullptr)
                 coeffs->getMagnitudeForFrequencyArray(frequencies.getRawDataPointer(), magnitudes.getRawDataPointer(), numPixels, sampleRate);
             float additiveDB = 0.0f;
-            if (filtersAreParallel && handle.gainSlider != nullptr)
-                additiveDB = handle.gainSlider->getValue();
+            //if (filtersAreParallel && handle.gainSlider != nullptr)
+            //    additiveDB = handle.gainSlider->getValue();
                     //FloatVectorOperations::multiply(magnitudes.getRawDataPointer(), Decibels::decibelsToGain(handle.gainSlider->getValue()), numPixels);
             
             //calculate phase response if needed
@@ -159,7 +178,7 @@ public:
             magnitude.lineTo(xMax, yZero);
             magnitude.lineTo(xMin, yZero);
             magnitude.closeSubPath();
-            g.setColour(handle.colour.withMultipliedAlpha(0.3f));
+            g.setColour(handle.colour.withMultipliedAlpha(0.1f));
             g.fillPath(magnitude);
             
             float multGain = (handle.overrideGain != nullptr) ? *handle.overrideGain : Decibels::decibelsToGain(additiveDB);
@@ -197,32 +216,34 @@ public:
         {
             magnitude.lineTo(x, jlimit((float) yMin, (float) yMax + OH + 1, dbToYFloat(allMagnitudesInDb[x-xMin])));
         }
-        g.setColour(Colours::white);
+       // g.setColour(Colours::white);
+		g.setColour(Colour(137, 176, 196));
         g.strokePath(magnitude, PathStrokeType(1.5f));
         
         magnitude.lineTo(xMax, yZero);
         magnitude.lineTo(xMin, yZero);
         magnitude.closeSubPath();
-        g.setColour(Colours::white.withMultipliedAlpha(0.1f));
+		g.setColour(Colour(137, 176, 196).withMultipliedAlpha(0.1f));
+		//g.setColour(Colours::white.withMultipliedAlpha(0.1f));
         g.fillPath(magnitude);
         
-        int size = elements.size();
-        for (int i = 0; i < size; ++i) {
-            FilterWithSlidersAndColour& handle(elements.getReference(i));
-            float circX = handle.frequencySlider == nullptr ? hzToX(s.fMin) : hzToX(handle.frequencySlider->getValue());
-            float circY;
-            if (!s.gainHandleLin)
-                circY = handle.gainSlider == nullptr ? dbToY(0.0f) : dbToY(handle.gainSlider->getValue());
-            else
-                circY = handle.gainSlider == nullptr ? dbToY(0.0f) : dbToY(Decibels::gainToDecibels (handle.gainSlider->getValue()));
-            g.setColour(Colour(0xFF191919));
-            g.drawEllipse(circX - 5.0f, circY - 5.0f , 10.0f, 10.0f, 3.0f);
-            
-            g.setColour(handle.colour);
-            g.drawEllipse(circX - 5.0f, circY - 5.0f , 10.0f, 10.0f, 1.0f);
-            g.setColour(activeElem == i ? handle.colour : handle.colour.withSaturation(0.2));
-            g.fillEllipse(circX - 5.0f, circY - 5.0f , 10.0f, 10.0f);
-        }
+        //int size = elements.size();
+        //for (int i = 0; i < size; ++i) {
+        //    FilterWithSlidersAndColour& handle(elements.getReference(i));
+        //    float circX = handle.frequencySlider == nullptr ? hzToX(s.fMin) : hzToX(handle.frequencySlider->getValue());
+        //    float circY;
+        //    if (!s.gainHandleLin)
+        //        circY = handle.gainSlider == nullptr ? dbToY(0.0f) : dbToY(handle.gainSlider->getValue());
+        //    else
+        //        circY = handle.gainSlider == nullptr ? dbToY(0.0f) : dbToY(Decibels::gainToDecibels (handle.gainSlider->getValue()));
+        //    g.setColour(Colour(0xFF191919));
+        //    g.drawEllipse(circX - 5.0f, circY - 5.0f , 10.0f, 10.0f, 3.0f);
+        //    
+        //    g.setColour(handle.colour);
+        //    g.drawEllipse(circX - 5.0f, circY - 5.0f , 10.0f, 10.0f, 1.0f);
+        //    g.setColour(activeElem == i ? handle.colour : handle.colour.withSaturation(0.2));
+        //    g.fillEllipse(circX - 5.0f, circY - 5.0f , 10.0f, 10.0f);
+        //}
     };
     
     int dbToY(float db)
@@ -280,61 +301,7 @@ public:
             repaint();
         }
     }
-    void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override {
-        if (activeElem != -1)
-        {
-            Slider* slHandle = elements.getReference(activeElem).qSlider;
-            if (slHandle != nullptr)
-                slHandle->mouseWheelMove(event, wheel);
-        }
-    }
-    void mouseDrag(const MouseEvent &event) override
-    {
-        Point<int> pos = event.getPosition();
-        float frequency = xToHz(pos.x);
-        float gain;
-        if (!s.gainHandleLin)
-            gain = yToDb(pos.y);
-        else
-            gain = Decibels::decibelsToGain (yToDb(pos.y));
-        
-        if (activeElem != -1)
-        {
-            FilterWithSlidersAndColour& handle(elements.getReference(activeElem));
-            if (handle.frequencySlider != nullptr)
-                handle.frequencySlider->setValue(frequency);
-            if (handle.gainSlider != nullptr)
-                handle.gainSlider->setValue(gain);
-        }
-    }
-    
-    void mouseMove(const MouseEvent &event) override
-    {
-        Point<int> pos = event.getPosition();
-        int oldActiveElem = activeElem;
-        activeElem = -1;
-        for (int i = elements.size(); --i >= 0;)
-        {   
-            FilterWithSlidersAndColour& handle(elements.getReference(i));
 
-            float gain;
-            if (!s.gainHandleLin)
-                gain = handle.gainSlider->getValue();
-            else
-                gain = Decibels::gainToDecibels (
-                    handle.gainSlider->getValue());
-
-            Point<int> filterPos (handle.frequencySlider == nullptr ? hzToX(0.0f) : hzToX(handle.frequencySlider->getValue()), handle.gainSlider == nullptr ? dbToY(0.0f) : dbToY(gain));
-            if (pos.getDistanceSquaredFrom(filterPos) < 45) {
-                activeElem = i;
-                break;
-            }
-        }
-        
-        if (oldActiveElem != activeElem)
-            repaint();
-
-    }
     
     void resized() override {
         int xMin = hzToX(s.fMin);
@@ -385,9 +352,9 @@ public:
         }
     }
     
-    void addCoefficients(dsp::IIR::Coefficients<float>::Ptr* newCoeffs, Colour newColourForCoeffs, Slider* frequencySlider = nullptr, Slider* gainSlider = nullptr, Slider* qSlider = nullptr, float* overrideLinearGain = nullptr)
+    void addCoefficients(dsp::FIR::Coefficients<float>::Ptr* newCoeffs, Colour newColourForCoeffs, float* overrideLinearGain = nullptr)
     {
-        elements.add({newCoeffs, newColourForCoeffs, frequencySlider, gainSlider, qSlider, overrideLinearGain});
+        elements.add({newCoeffs, newColourForCoeffs, overrideLinearGain});
     }
     
     void setParallel (bool shouldBeParallel)

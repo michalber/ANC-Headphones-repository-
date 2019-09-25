@@ -89,6 +89,10 @@ public:
 	}
 
     //==============================================================================
+	dsp::FIR::Coefficients<float>* getCoeffs() {
+		return stereoFIR.state.getObject();
+	}
+
     void beginTest()
     {
         //resultsBox.moveCaretToEnd();
@@ -253,7 +257,7 @@ public:
 		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
 		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
 				
-		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));		
 		
 		notify();
 
@@ -333,6 +337,7 @@ private:
 
 #if JUCE_USE_SIMD
 		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+		memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
 #else
 		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
 #endif
@@ -351,7 +356,7 @@ public:
     {
         setOpaque (true);
 		
-		startTimerHz(2);
+		startTimerHz(3);
 
 		// Set up Volume Label text box 
 		volumeLabel.setText("Volume: ", dontSendNotification);		
@@ -385,7 +390,8 @@ public:
 		addAndMakeVisible (liveAudioScroller.get());
 
 
-		filterVisualizer.reset(new FilterVisualizer());
+		filterVisualizer.reset(new FilterVisualizer());		
+		filterVisualizer->addCoefficients(&elo, Colours::white);
 		addAndMakeVisible(filterVisualizer.get());
 		
 		addAndMakeVisible(SNR_Value);
@@ -425,7 +431,7 @@ public:
 //		audioDeviceManager.addAudioCallback(latencyTester.get());
         audioDeviceManager.addAudioCallback (liveAudioScroller.get());
 		audioDeviceManager.addAudioCallback(spectrumAnalyser.get());
-
+		
         setSize (500, 800);
     }
 
@@ -443,7 +449,10 @@ public:
 	void timerCallback() override
 	{
 		if (ANC.get() != nullptr)
-			SNR_Value.setText(String("SNR = ") + String(ANC->getSNR()) + String(" dB"),NotificationType::dontSendNotification);
+		{
+			SNR_Value.setText(String("SNR = ") + String(ANC->getSNR()) + String(" dB"), NotificationType::dontSendNotification);
+			elo = ANC->getCoeffs();
+		}
 	}
 
 	void sliderValueChanged(Slider* slider) override
@@ -466,6 +475,7 @@ public:
         {
 			ANC.reset (new ANCInstance());
             audioDeviceManager.addAudioCallback (ANC.get());
+//			elo = dsp::IIR::Coefficients<float>::makeLowPass(48000, 5000);			
         }
 
 		ANC->beginTest();
@@ -531,6 +541,8 @@ private:
 	Label volumeLabel;
 
 	Slider FFTScaleSlider;
+
+	dsp::FIR::Coefficients<float>::Ptr elo;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveNoiseCancelling)
 };
