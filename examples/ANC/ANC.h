@@ -95,7 +95,7 @@ public:
 	}
 #else 
 	dsp::FIR::Coefficients<float>* getCoeffs() {
-		return coeffs;
+		return &coeffs;
 	}
 #endif
     void beginTest()
