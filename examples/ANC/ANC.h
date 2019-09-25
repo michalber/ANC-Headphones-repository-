@@ -175,16 +175,14 @@ public:
         deviceInputLatency  = device->getInputLatencyInSamples();
         deviceOutputLatency = device->getOutputLatencyInSamples();
 
-//		NLMS_Algo = Adaptive::NLMS(numOfSamples);
-
 #if !JUCE_USE_SIMD
 		inData.setSize(2, numOfSamples);
 		outData.setSize(2,numOfSamples);
 		inData.clear();
 		outData.clear();
 
-		arm_lms_norm_init_f32(&lmsNorm_instance, 200, lmsNormCoeff_f32, lmsStateF32, 0.001, numOfSamples);
-		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, 200);
+		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, numOfSamples);
+		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
 		filter = dsp::FIR::Filter<float>(coeffs);
 
 #else
