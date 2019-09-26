@@ -55,23 +55,50 @@ class AnalyserComponent : public AudioIODeviceCallback,
 							private Timer
 {
 public:
+	/***************************************************************************//**
+	 * @brief Default constructor of AnalyserComponent class
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Value to set or disable parralerism of filters
+	 * @return
+	 ******************************************************************************/
 	AnalyserComponent() : forwardFFT_L(fftOrder), forwardFFT_P(fftOrder),
 							window_L(fftSize, dsp::WindowingFunction<float>::hann), window_P(fftSize, dsp::WindowingFunction<float>::hann)
 	{
 		setOpaque(true);
 		startTimerHz(50);			
 	}
-
-	//==============================================================================
-
+	/***************************************************************************//**
+	 * @brief Overriden function to set audio device parameters before it starts
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Pointer to IO Audio Device
+	 * @return
+	 ******************************************************************************/
 	void audioDeviceAboutToStart(AudioIODevice*) override
 	{		
 	}
-
+	/***************************************************************************//**
+	 * @brief Overriden function to clean audio device parameters after it stops
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param 
+	 * @return
+	 ******************************************************************************/
 	void audioDeviceStopped() override
 	{	
 	}
-
+	/***************************************************************************//**
+	 * @brief Callback of IO Audio Device 
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Double pointer to input data
+	 * @param Number of input channels
+	 * @param Double pointer to input data
+	 * @param Number of output channels
+	 * @param Number of samples
+	 * @return
+	 ******************************************************************************/
 	void audioDeviceIOCallback(const float** inputChannelData, int numInputChannels,
 		float** outputChannelData, int numOutputChannels,
 		int numberOfSamples) override
@@ -87,13 +114,25 @@ public:
 
 		}
 	}
-
-	//==============================================================================
+	/***************************************************************************//**
+	 * @brief Function to set scale min and max value
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Minimal value of scale
+	 * @param Maximal value of scale
+	 * @return
+	 ******************************************************************************/
 	void setScaleValue(float valMin, float valMax) {
 		scaleValueMin = valMin;
 		scaleValueMax = valMax;
 	}
-
+	/***************************************************************************//**
+	 * @brief Overriden function to draw new data on screen
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Reference to graphic module
+	 * @return
+	 ******************************************************************************/
 	void paint(Graphics& g) override
 	{
 		g.fillAll(Colour(39, 50, 56));
@@ -101,7 +140,13 @@ public:
 		g.setColour(Colour(137, 176, 196));
 		drawFrame(g);
 	}
-
+	/***************************************************************************//**
+	 * @brief function of timer callback - specifies what to do when timer is called
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
 	void timerCallback() override
 	{
 		if (nextFFTBlockReady_L)
@@ -112,7 +157,14 @@ public:
 			repaint();
 		}
 	}
-
+	/***************************************************************************//**
+	 * @brief Function to put new data od FIFO queue
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param New sample value
+	 * @param Channel to put sample to
+	 * @return
+	 ******************************************************************************/
 	void pushNextSampleIntoFifo(float sample, bool channel) noexcept
 	{
 		// if the fifo contains enough data, set a flag to say
@@ -148,7 +200,13 @@ public:
 			fifo_P[fifoIndex_P++] = sample;
 		}
 	}
-
+	/***************************************************************************//**
+	 * @brief Function to draw new graph on screen
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param 
+	 * @return
+	 ******************************************************************************/
 	void drawNextFrameOfSpectrum()
 	{
 		// first apply a windowing function to our data
@@ -179,7 +237,13 @@ public:
 			scopeData_P[i] = level;
 		}
 	}
-
+	/***************************************************************************//**
+	 * @brief Function to draw new frame on screen
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Reference to graphics module
+	 * @return
+	 ******************************************************************************/
 	void drawFrame(Graphics& g)
 	{
 		auto width = getLocalBounds().getWidth() - 20;
@@ -211,7 +275,15 @@ public:
 					  jmap(scopeData_P[i],     0.0f, 1.0f, (float)height, 0.0f) });
 		}
 	}
-
+	/***************************************************************************//**
+	 * @brief Enum specyfies FFT settings
+	 * @author Micha³ Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Order of FFT
+	 * @param Size of FFT
+	 * @param Scope size
+	 * @return
+	 ******************************************************************************/
 	enum
 	{
 		fftOrder = 11,

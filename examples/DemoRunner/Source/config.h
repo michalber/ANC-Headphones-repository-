@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------------------------
 // At least 2x NUM_OF_FRAMES
 #ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (2048)
+#define FRAMES_PER_BUFFER  (4092)
 #endif //FRAMES_PER_BUFFER
 //-----------------------------------------------------------------------------------------------
 #ifndef NUM_OF_FRAMES
@@ -34,7 +34,7 @@
 #endif  //BUFFER_SIZE
 //-----------------------------------------------------------------------------------------------
 #ifndef NUM_OF_TAPS
-#define NUM_OF_TAPS  512
+#define NUM_OF_TAPS  4192
 #endif  //NUM_OF_TAPS
 //-----------------------------------------------------------------------------------------------
 #ifndef DELTA_ERROR         

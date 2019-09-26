@@ -1,44 +1,25 @@
-/*
-  ==============================================================================
-
-   This file is part of the JUCE examples.
-   Copyright (c) 2017 - ROLI Ltd.
-
-   The code included in this file is provided under the terms of the ISC license
-   http://www.isc.org/downloads/software-support-policy/isc-license. Permission
-   To use, copy, modify, and/or distribute this software for any purpose with or
-   without fee is hereby granted provided that the above copyright notice and
-   this permission notice appear in all copies.
-
-   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY, AND ALL WARRANTIES,
-   WHETHER EXPRESSED OR IMPLIED, INCLUDING MERCHANTABILITY AND FITNESS FOR
-   PURPOSE, ARE DISCLAIMED.
-
-  ==============================================================================
-*/
-
-/*******************************************************************************
+﻿/*******************************************************************************
  The block below describes the properties of this PIP. A PIP is a short snippet
  of code that can be read by the Projucer and used to generate a JUCE project.
 
  BEGIN_JUCE_PIP_METADATA
 
- name:             AudioLatencyDemo
+ name:             Active Noise Cancelling
  version:          1.0.0
- vendor:           JUCE
- website:          http://juce.com
- description:      Tests the audio latency of a device.
+ vendor:           Michał Berdzik
+ website:          
+ description:      Perform ANC on collected data
 
  dependencies:     juce_audio_basics, juce_audio_devices, juce_audio_formats,
                    juce_audio_processors, juce_audio_utils, juce_core,
                    juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_gui_extra
- exporters:        xcode_mac, vs2017, linux_make, androidstudio, xcode_iphone
+ exporters:        vs2017, linux_make
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
  type:             Component
- mainClass:        AudioLatencyDemo
+ mainClass:        ANCInstance
 
  useLocalCopy:     1
 
@@ -63,15 +44,48 @@ class ANCInstance : public AudioIODeviceCallback,
 						private Thread
 {
 public:
+	/***************************************************************************//**
+	 * @brief Default constructor of ANCInstance class
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
 	ANCInstance() :Thread("NLMS Processing Thread")
     {
 		SNR.store(0);
 		setPriority(realtimeAudioPriority);
 	}
+	/***************************************************************************//**
+	 * @brief Parametrized constructor of ANCInstance class
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
+	ANCInstance(int _filterSize, float _muVal) :Thread("NLMS Processing Thread"), filterSize(_filterSize), muValue(_muVal)
+	{
+
+		SNR.store(0);
+		setPriority(realtimeAudioPriority);
+	}
+	/***************************************************************************//**
+	 * @brief Default destructor of ANCInstance class
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Reference to graphics module
+	 * @return
+	 ******************************************************************************/
 	~ANCInstance() {
 		stopThread(-1);
 	}
-
+	/***************************************************************************//**
+ * @brief Overriden function of Thread's run() function
+ * @author Michał Berdzik
+ * @version 1.0 26/09/2019
+ * @param
+ * @return
+ ******************************************************************************/
 	void run() override 
 	{
 		while (!threadShouldExit())
@@ -89,7 +103,13 @@ public:
 		}
 	}
 
-    //==============================================================================
+	/***************************************************************************//**
+	 * @brief Function to get current coefficients of NLMS filter
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param 
+	 * @return NLMS FIR Coefficients
+	 ******************************************************************************/
 #if JUCE_USE_SIMD
 	dsp::FIR::Coefficients<float>* getCoeffs() {
 		return stereoFIR.state.getObject();		
@@ -99,6 +119,13 @@ public:
 		return &coeffs;
 	}
 #endif
+	/***************************************************************************//**
+	 * @brief DELETE THIS FUNCTION
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
     void beginTest()
     {
         //resultsBox.moveCaretToEnd();
@@ -109,15 +136,34 @@ public:
         playingSampleNum = recordedSampleNum = 0;
         testIsRunning = true;
     }
-
+	/***************************************************************************//**
+	 * @brief Function to set output volume level
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param New volume value
+	 * @return
+	 ******************************************************************************/
 	void setVolume(float vol) {
 		volume = vol;
 	}
-
+	/***************************************************************************//**
+	 * @brief Function to return current SNR value
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param 
+	 * @return Float SNR value
+	 ******************************************************************************/
 	float getSNR() {
 		return SNR.load();
 	}
-
+	/***************************************************************************//**
+	 * @brief Function to put new data od FIFO queue
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param New sample value
+	 * @param Channel to put sample to
+	 * @return
+	 ******************************************************************************/
 	void pushNextSamplesIntoFifo(float *samples, bool channel, int dataSize) noexcept
 	{
 		// if the fifo contains enough data, set a flag to say
@@ -164,7 +210,13 @@ public:
 			nextSNRBlockReady_P = false;
 		}
 	}
-    //==============================================================================
+	/***************************************************************************//**
+	 * @brief Overriden function to set audio device parameters before it starts
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Pointer to IO Audio Device
+	 * @return
+	 ******************************************************************************/
     void audioDeviceAboutToStart (AudioIODevice* device) override
     {
 		numOfSamples = device->getCurrentBufferSizeSamples();
@@ -181,8 +233,8 @@ public:
 		inData.clear();
 		outData.clear();
 
-		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, numOfSamples);
-		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+		arm_lms_norm_init_f32(&lmsNorm_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
+		coeffs = dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		filter = dsp::FIR::Filter<float>(coeffs);
 
 #else
@@ -195,9 +247,9 @@ public:
 		spec.maximumBlockSize = numOfSamples;
 		spec.sampleRate = sampleRate;		
 
-		arm_lms_norm_init_f32(&lmsNorm_instance, NUM_OF_TAPS, lmsNormCoeff_f32, lmsStateF32, MU, numOfSamples);
+		arm_lms_norm_init_f32(&lmsNorm_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
 
-		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		stereoFIR.prepare(spec);
 
 		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 14000.0f, 20);
@@ -205,9 +257,27 @@ public:
 #endif
 		startThread();
     }
-
-    void audioDeviceStopped() override {}
-
+	/***************************************************************************//**
+	 * @brief Overriden function to clean audio device parameters after it stops
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
+    void audioDeviceStopped() override 
+	{
+	}
+	/***************************************************************************//**
+	 * @brief Callback of IO Audio Device
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Double pointer to input data
+	 * @param Number of input channels
+	 * @param Double pointer to input data
+	 * @param Number of output channels
+	 * @param Number of samples
+	 * @return
+	 ******************************************************************************/
 	void audioDeviceIOCallback(const float** inputChannelData, int numInputChannels,
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
@@ -283,11 +353,40 @@ public:
 //		auto end = std::chrono::high_resolution_clock::now();
 //		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 	}
+	/***************************************************************************//**
+	 * @brief Function to process new pack of input data 
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Pointer to array of noise audio
+	 * @param Pointer to array of destiny audio
+	 * @return
+	 ******************************************************************************/
+	inline void processSamples(float *x, float *d) {
+		const ScopedLock sl(lock);
+
+		arm_lms_norm_f32(
+			&lmsNorm_instance,			/* LMSNorm instance */
+			x,							/* Input signal */
+			d,							/* Reference Signal */
+			Out,						/* Converged Signal */
+			errOutput,					/* Error Signal, this will become small as the signal converges */
+			numOfSamples);				/* BlockSize */
+
+#if JUCE_USE_SIMD
+//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+		memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+#else
+		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+#endif
+	}
 
 private:
     CriticalSection lock;
 
 	std::atomic<float> SNR;
+
+	int filterSize	= 1;
+	float muValue	= 1;
 
     int playingSampleNum  = 0;
     int recordedSampleNum = -1;
@@ -326,26 +425,6 @@ private:
 	dsp::FIR::Coefficients<float> coeffs;
 	dsp::FIR::Filter<float> filter;
 #endif
-	//==============================================================================
-
-	inline void processSamples(float *x, float *d) {
-		const ScopedLock sl(lock);
-
-		arm_lms_norm_f32(
-			&lmsNorm_instance,			/* LMSNorm instance */
-			x,							/* Input signal */
-			d,							/* Reference Signal */
-			Out,						/* Converged Signal */
-			errOutput,					/* Error Signal, this will become small as the signal converges */
-			numOfSamples);				/* BlockSize */
-
-#if JUCE_USE_SIMD
-//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
-		memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
-#else
-		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, NUM_OF_TAPS * sizeof(float));
-#endif
-	}
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ANCInstance)
 };
@@ -356,6 +435,13 @@ class ActiveNoiseCancelling  : public Component,
 								public Slider::Listener
 {
 public:
+	/***************************************************************************//**
+	 * @brief Default constructor of ActiveNoiseCancelling class
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
 	ActiveNoiseCancelling()
     {
         setOpaque (true);
@@ -372,6 +458,28 @@ public:
 		volumeSlider.addListener(this);
 		volumeSlider.setValue(1);
 		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
+
+		// Set up Filter size Label text box 
+		filterSizeLabel.setText("Filter size: ", dontSendNotification);
+		filterSizeLabel.attachToComponent(&filterSizeSlider, true);
+		filterSizeLabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
+
+		// Set up Filter Size Slider box 
+		filterSizeSlider.setRange(256.0, 4096.0, 128.0);
+		filterSizeSlider.addListener(this);
+		filterSizeSlider.setValue(512);
+		filterSizeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
+
+		// Set up Filter size Label text box 
+		filterMULabel.setText("Filter mu: ", dontSendNotification);
+		filterMULabel.attachToComponent(&filterMUSlider, true);
+		filterMULabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
+
+		// Set up Filter Size Slider box 
+		filterMUSlider.setRange(0.00001, 1.0, 0.00001);
+		filterMUSlider.addListener(this);
+		filterMUSlider.setValue(0.01);
+		filterMUSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 		
 		// Set up FFT Scale Slider box
 		FFTScaleSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 30, FFTScaleSlider.getTextBoxHeight());
@@ -386,6 +494,8 @@ public:
 		addAndMakeVisible(FFTScaleSlider);
 		addAndMakeVisible(volumeLabel);
 		addAndMakeVisible(volumeSlider);
+		addAndMakeVisible(filterSizeSlider);
+		addAndMakeVisible(filterMUSlider);
 
 		// Reset and add main audio processing components
         liveAudioScroller.reset (new LiveScrollingAudioDisplay());
@@ -438,7 +548,13 @@ public:
 		
         setSize (500, 800);
     }
-
+	/***************************************************************************//**
+	 * @brief Default destructor of ActiveNoiseCancelling class
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
     ~ActiveNoiseCancelling()
     {
         audioDeviceManager.removeAudioCallback (liveAudioScroller.get());
@@ -449,7 +565,13 @@ public:
 		spectrumAnalyser.reset();		
 		filterVisualizer.reset();
     }
-
+	/***************************************************************************//**
+	 * @brief function of timer callback - specifies what to do when timer is called
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
 	void timerCallback() override
 	{
 		if (ANC.get() != nullptr)
@@ -458,7 +580,13 @@ public:
 			elo = ANC->getCoeffs();
 		}
 	}
-
+	/***************************************************************************//**
+	 * @brief Overriden function of Slider's class
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Pointer to Slider object
+	 * @return
+	 ******************************************************************************/
 	void sliderValueChanged(Slider* slider) override
 	{
 		if (slider == &volumeSlider) {
@@ -472,24 +600,43 @@ public:
 			}
 		}
 	}
-
+	/***************************************************************************//**
+	 * @brief Function to start ANC
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
     void startTest()
     {
         if (ANC.get() == nullptr)
         {
-			ANC.reset (new ANCInstance());
-            audioDeviceManager.addAudioCallback (ANC.get());
-//			elo = dsp::IIR::Coefficients<float>::makeLowPass(48000, 5000);			
+			ANC.reset (new ANCInstance(filterSizeSlider.getValue(),filterMUSlider.getValue()));
+            audioDeviceManager.addAudioCallback (ANC.get());	
+			filterSizeSlider.setEnabled(false);
+			filterMUSlider.setEnabled(false);
         }
 
 		ANC->beginTest();
     }
-
+	/***************************************************************************//**
+	 * @brief Overriden function to draw new data on screen
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param Reference to graphic module
+	 * @return
+	 ******************************************************************************/
     void paint (Graphics& g) override
     {
         g.fillAll (findColour (ResizableWindow::backgroundColourId));
     }
-
+	/***************************************************************************//**
+	 * @brief Overriden function called when application window is resized
+	 * @author Michał Berdzik
+	 * @version 1.0 26/09/2019
+	 * @param
+	 * @return
+	 ******************************************************************************/
     void resized() override
     {
         auto b = getLocalBounds().reduced (5);
@@ -498,7 +645,11 @@ public:
 		startVisualizigData.setBounds(b.getX() + 120 + b.getWidth() / 2, b.getY(), b.getWidth() / 2 - 120, b.getHeight() / 20);
 		b.removeFromTop(b.getHeight() / 20);
 		b.removeFromTop(3);
-		
+
+		filterSizeSlider.setBounds(b.getX() + 80, b.getY(), b.getWidth() / 2 - 80, b.getHeight() / 20);
+		filterMUSlider.setBounds(b.getX() + b.getWidth() / 2 + 80, b.getY(), b.getWidth() / 2 - 80, b.getHeight() / 20);
+		b.removeFromTop(b.getHeight() / 20);
+		b.removeFromTop(3);
 
         if (liveAudioScroller.get() != nullptr)
         {
@@ -506,10 +657,10 @@ public:
             b.removeFromTop (3);
         }
 
-        startTestButton.setBounds (b.removeFromBottom (b.getHeight() / 10));
+        startTestButton.setBounds (b.removeFromBottom (b.getHeight() / 15));
         b.removeFromBottom (10);		
 
-		SNR_Value.setBounds(b.removeFromBottom(b.getHeight() / 10));
+		SNR_Value.setBounds(b.removeFromBottom(b.getHeight() / 15));
 		b.removeFromBottom(10);
         
 		FFTScaleSlider.setBounds(b.getX(), b.getY(), 30, b.getHeight() / 2);
@@ -543,6 +694,12 @@ private:
 
 	Slider volumeSlider;
 	Label volumeLabel;
+
+	Slider filterSizeSlider;
+	Label  filterSizeLabel;
+
+	Slider filterMUSlider;
+	Label  filterMULabel;
 
 	Slider FFTScaleSlider;
 
