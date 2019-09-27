@@ -454,7 +454,7 @@ public:
 		volumeLabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
 
 		// Set up Volume Slider box 
-		volumeSlider.setRange(0, 1);		
+		volumeSlider.setRange(0, 3);		
 		volumeSlider.addListener(this);
 		volumeSlider.setValue(1);
 		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
