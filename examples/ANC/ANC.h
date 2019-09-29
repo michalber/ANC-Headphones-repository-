@@ -467,7 +467,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterSizeSlider.setRange(256.0, 4096.0, 128.0);
 		filterSizeSlider.addListener(this);
-		filterSizeSlider.setValue(512);
+		filterSizeSlider.setValue(1024);
 		filterSizeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 
 		// Set up Filter size Label text box 
