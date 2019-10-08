@@ -36,6 +36,7 @@
 
 #include "../DemoRunner/Source/ARM_NLMS.h"
 #include "../DemoRunner/Source/config.h"
+#include "../DemoRunner/Source/LPF_coeffs.h"
 
 #include <future>
 
@@ -199,7 +200,7 @@ public:
 		}
 		if (nextSNRBlockReady_L && nextSNRBlockReady_P)
 		{
-			SNR = arm_snr_f32(fifo_L, fifo_P, 88200);
+			SNR = arm_snr_f32(fifo_P, fifo_L, 88200);
 
 			zeromem(fifo_L, sizeof(fifo_L));
 			zeromem(fifo_P, sizeof(fifo_P));
@@ -227,6 +228,7 @@ public:
         deviceInputLatency  = device->getInputLatencyInSamples();
         deviceOutputLatency = device->getOutputLatencyInSamples();
 
+
 #if !JUCE_USE_SIMD
 		inData.setSize(2, numOfSamples);
 		outData.setSize(2,numOfSamples);
@@ -252,9 +254,13 @@ public:
 		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		stereoFIR.prepare(spec);
 
-		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 14000.0f, 20);
+		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 1000.0f);
 		stereoIIR.prepare(spec);
 #endif
+
+		arm_fir_init_f32(&arm_filter_nlms, filterSize, (float32_t *)&lmsNormCoeff_f32[0], &firStateNLMS[0], numOfSamples);
+		arm_fir_init_f32(&arm_filter_lpf, 57, (float32_t *)&LPF_Coeffs[0], &firStateLPF[0], numOfSamples);
+
 		startThread();
     }
 	/***************************************************************************//**
@@ -266,6 +272,8 @@ public:
 	 ******************************************************************************/
     void audioDeviceStopped() override 
 	{
+		stereoFIR.reset();
+		stereoIIR.reset();
 	}
 	/***************************************************************************//**
 	 * @brief Callback of IO Audio Device
@@ -282,7 +290,9 @@ public:
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
 		const ScopedLock sl(lock);
-//		auto start = std::chrono::high_resolution_clock::now();
+		auto start = std::chrono::high_resolution_clock::now();
+
+
 #if !JUCE_USE_SIMD
 
 				auto* playBufferL = outData.getReadPointer(0);
@@ -313,45 +323,54 @@ public:
 					++playingSampleNum;
 				}		
 				notify();
-		
+
+				pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
+				pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
+				
 				recordedSampleNum = 0;
 				playingSampleNum = 0;
 #else
 		inBlock	 = dsp::AudioBlock<float>((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
 		outBlock = dsp::AudioBlock<float>((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
-		auto* inout = channelPointers.getData();
-		auto n = inBlock.getNumSamples();
+		//auto* inout = channelPointers.getData();
+		//auto n = inBlock.getNumSamples();
 	
+		//for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
+		//	inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
+		//
+		//AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+		//static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
+		//		
+		//stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));	
+		
+
+		arm_fir_f32(&arm_filter_nlms, inputChannelData[0], outputChannelData[0], numSamples);		
+		notify();
+		arm_fir_f32(&arm_filter_lpf, outputChannelData[0], outputChannelData[0], numSamples);
+		arm_scale_f32(outputChannelData[0], volume, outputChannelData[0], numSamples);		
+		//arm_copy_f32(outputChannelData[1], outputChannelData[0], numSamples);
+		FloatVectorOperations::copy(outputChannelData[1], outputChannelData[0], numSamples);
+
+		//stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+
+		//for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
+		//	inout[ch] = outBlock.getChannelPointer(ch);
+		//	
+		//AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+		//	const_cast<float**> (inout),
+		//	static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
+
+		//FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
+
+		//FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
+		//FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
+
 		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
 		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
 
-		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
-			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
-		
-		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-				
-		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));		
-		
-		notify();
-
-//		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
-
-		for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
-			inout[ch] = outBlock.getChannelPointer(ch);
-			
-		AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-			const_cast<float**> (inout),
-			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-
-		FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
-
-		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
-		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
-
 #endif
-//		auto end = std::chrono::high_resolution_clock::now();
-//		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+		auto end = std::chrono::high_resolution_clock::now();
+		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 	}
 	/***************************************************************************//**
 	 * @brief Function to process new pack of input data 
@@ -402,6 +421,9 @@ private:
 	float errOutput[FRAMES_PER_BUFFER] = { 0 };						// Error data
 	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.1 };	// Array for NLMS algorithm
 	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.1 };					// NLMS Coefficients
+
+	float32_t firStateNLMS[FRAMES_PER_BUFFER + NUM_OF_TAPS - 1];
+	float32_t firStateLPF[FRAMES_PER_BUFFER + NUM_OF_TAPS - 1];
 	
 	float fifo_L[88200];
 	int fifoIndex_L = 0;
@@ -410,6 +432,9 @@ private:
 	float fifo_P[88200];
 	int fifoIndex_P = 0;
 	bool nextSNRBlockReady_P = false;
+
+	arm_fir_instance_f32 arm_filter_nlms;
+	arm_fir_instance_f32 arm_filter_lpf;
 
 #if JUCE_USE_SIMD
 	dsp::AudioBlock<float> inBlock;
@@ -446,7 +471,7 @@ public:
     {
         setOpaque (true);
 		
-		startTimerHz(3);
+		startTimerHz(1);
 
 		// Set up Volume Label text box 
 		volumeLabel.setText("Volume: ", dontSendNotification);		

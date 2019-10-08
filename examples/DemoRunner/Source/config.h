@@ -22,7 +22,7 @@
 //-----------------------------------------------------------------------------------------------
 // At least 2x NUM_OF_FRAMES
 #ifndef FRAMES_PER_BUFFER
-#define FRAMES_PER_BUFFER  (4092)
+#define FRAMES_PER_BUFFER  (4192)
 #endif //FRAMES_PER_BUFFER
 //-----------------------------------------------------------------------------------------------
 #ifndef NUM_OF_FRAMES

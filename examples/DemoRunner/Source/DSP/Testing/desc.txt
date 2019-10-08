@@ -1,0 +1,854 @@
+group Root {
+    class = Root
+
+    group DSP Tests {
+        class = DSPTests
+        folder = DSP
+
+        group Statistics Tests {
+           class = StatsTests
+           folder = Stats
+
+           suite Statistics Tests F32 {
+              class = StatsTestsF32
+              folder = StatsF32
+
+              Pattern INPUT1_F32_ID : Input1_f32.txt 
+              Pattern DIM1_S16_ID : Dims1_s16.txt 
+              Pattern REF1_ENTROPY_F32_ID : RefEntropy1_f32.txt
+
+              Pattern INPUT2_F32_ID : Input2_f32.txt 
+              Pattern DIM2_S16_ID : Dims2_s16.txt 
+              Pattern REF2_LOGSUMEXP_F32_ID : RefLogSumExp2_f32.txt
+
+              Pattern INPUTA3_F32_ID : InputA3_f32.txt 
+              Pattern INPUTB3_F32_ID : InputB3_f32.txt
+              Pattern DIM3_S16_ID : Dims3_s16.txt 
+              Pattern REF3_KL_F32_ID : RefKL3_f32.txt
+
+              Pattern INPUTA4_F32_ID : InputA4_f32.txt 
+              Pattern INPUTB4_F32_ID : InputB4_f32.txt
+              Pattern DIM4_S16_ID : Dims4_s16.txt 
+              Pattern REF4_LOGSUMEXP_DOT_F32_ID : RefLogSumExpDot4_f32.txt
+
+              Output  OUT_F32_ID : Output
+              Output  TMP_F32_ID : Temp
+
+              Functions {
+                arm_entropy_f32:test_entropy_f32
+                arm_logsumexp_f32:test_logsumexp_f32
+                arm_kullback_leibler_f32:test_kullback_leibler_f32
+                arm_logsumexp_dot_prod_f32:test_logsumexp_dot_prod_f32
+              }
+
+           }
+        }
+
+        group Support Tests {
+           class = SupportTests
+           folder = Support
+
+           suite Support Tests F32 {
+              class = SupportTestsF32
+              folder = SupportF32
+
+              Pattern INPUTS_F32_ID : Inputs6_f32.txt 
+              Pattern WEIGHTS_F32_ID : Weights6_f32.txt 
+              Pattern REF_F32_ID : Ref6_f32.txt
+
+              Output  OUT_F32_ID : Output
+
+              Functions {
+                arm_weighted_sum_f32:test_weighted_sum_f32
+              }
+
+           }
+        }
+
+        suite Support Bar Tests F32 {
+              class = SupportBarTestsF32
+              folder = SupportBarF32
+
+              Pattern SAMPLES_F32_ID : Inputs1_f32.txt 
+              Pattern COEFS_F32_ID : Weights1_f32.txt 
+              Pattern REF_F32_ID : Ref1_f32.txt
+              Pattern DIM_S16_ID : Dims1_s16.txt
+
+
+              Output  OUT_SAMPLES_F32_ID : Output
+
+
+              Functions {
+                test_barycenter_f32:test_barycenter_f32
+              }
+
+        }
+
+        group Basic Tests {
+           class = BasicTests
+           folder = BasicMaths
+
+           suite Basic Tests F32{
+              class = BasicTestsF32
+              folder = BasicMathsF32
+   
+              Pattern INPUT1_F32_ID : Input1_f32.txt 
+              Pattern INPUT2_F32_ID : Input2_f32.txt 
+   
+              Pattern REF_ADD_F32_ID : Reference1_f32.txt
+              Pattern REF_SUB_F32_ID : Reference2_f32.txt
+              Pattern REF_MULT_F32_ID : Reference3_f32.txt
+              Pattern REF_NEGATE_F32_ID : Reference4_f32.txt
+              Pattern REF_OFFSET_F32_ID : Reference5_f32.txt
+              Pattern REF_SCALE_F32_ID : Reference6_f32.txt
+              Pattern REF_DOT_3_F32_ID : Reference7_f32.txt
+              Pattern REF_DOT_4N_F32_ID : Reference8_f32.txt
+              Pattern REF_DOT_4N1_F32_ID : Reference9_f32.txt
+              Pattern REF_ABS_F32_ID : Reference10_f32.txt
+   
+              Output  OUT_SAMPLES_F32_ID : Output
+              Output  OUT_STATE_F32_ID : State
+   
+              Functions {
+                Test nb=3    arm_add_f32:test_add_f32
+                Test nb=4n   arm_add_f32:test_add_f32
+                Test nb=4n+1 arm_add_f32:test_add_f32
+         
+                Test nb=3    arm_sub_f32:test_sub_f32
+                Test nb=4n   arm_sub_f32:test_sub_f32
+                Test nb=4n+1 arm_sub_f32:test_sub_f32
+         
+                Test nb=3    arm_mult_f32:test_mult_f32
+                Test nb=4n   arm_mult_f32:test_mult_f32
+                Test nb=4n+1 arm_mult_f32:test_mult_f32
+         
+                Test nb=3    arm_negate_f32:test_negate_f32
+                Test nb=4n   arm_negate_f32:test_negate_f32
+                Test nb=4n+1 arm_negate_f32:test_negate_f32
+         
+                Test nb=3    arm_offset_f32:test_offset_f32
+                Test nb=4n   arm_offset_f32:test_offset_f32
+                Test nb=4n+1 arm_offset_f32:test_offset_f32
+         
+                Test nb=3    arm_scale_f32:test_scale_f32
+                Test nb=4n   arm_scale_f32:test_scale_f32
+                Test nb=4n+1 arm_scale_f32:test_scale_f32
+         
+                Test nb=3    arm_dot_prod_f32:test_dot_prod_f32
+                Test nb=4n   arm_dot_prod_f32:test_dot_prod_f32
+                Test nb=4n+1 arm_dot_prod_f32:test_dot_prod_f32
+         
+                Test nb=3    arm_abs_f32:test_abs_f32
+                Test nb=4n   arm_abs_f32:test_abs_f32
+                Test nb=4n+1 arm_abs_f32:test_abs_f32
+              }
+           }
+        }
+
+        group SVM Tests {
+           class = SVMTests
+           folder = SVM 
+
+           suite SVM F32 {
+              class = SVMF32
+              folder = SVMF32
+
+              Pattern SAMPLES1_F32_ID : Samples1_f32.txt 
+              Pattern PARAMS1_F32_ID : Params1_f32.txt 
+              Pattern DIMS1_S16_ID : Dims1_s16.txt 
+              Pattern REF1_S32_ID : Reference1_s32.txt
+
+              Pattern SAMPLES2_F32_ID : Samples2_f32.txt 
+              Pattern PARAMS2_F32_ID : Params2_f32.txt 
+              Pattern DIMS2_S16_ID : Dims2_s16.txt 
+              Pattern REF2_S32_ID : Reference2_s32.txt
+
+              Pattern SAMPLES3_F32_ID : Samples3_f32.txt 
+              Pattern PARAMS3_F32_ID : Params3_f32.txt 
+              Pattern DIMS3_S16_ID : Dims3_s16.txt 
+              Pattern REF3_S32_ID : Reference3_s32.txt
+
+              Pattern SAMPLES4_F32_ID : Samples4_f32.txt 
+              Pattern PARAMS4_F32_ID : Params4_f32.txt 
+              Pattern DIMS4_S16_ID : Dims4_s16.txt 
+              Pattern REF4_S32_ID : Reference4_s32.txt
+
+              Pattern SAMPLES5_F32_ID : Samples5_f32.txt 
+              Pattern PARAMS5_F32_ID : Params5_f32.txt 
+              Pattern DIMS5_S16_ID : Dims5_s16.txt 
+              Pattern REF5_S32_ID : Reference5_s32.txt
+              
+              Output  OUT_S32_ID : Output
+
+              Functions {
+                 arm_svm_linear_predict_f32:test_svm_linear_predict_f32
+                 arm_svm_polynomial_predict_f32:test_svm_polynomial_predict_f32
+                 arm_svm_rbf_predict_f32:test_svm_rbf_predict_f32
+                 arm_svm_sigmoid_predict_f32:test_svm_sigmoid_predict_f32
+                 arm_svm_oneclass_predict_f32:test_svm_rbf_predict_f32
+              }
+           }
+        }
+
+        group Bayes Tests {
+           class = BayesTests
+           folder = Bayes 
+
+           suite Bayes F32 {
+              class = BayesF32
+              folder = BayesF32
+
+              Pattern DIMS1_S16_ID : Dims1_s16.txt 
+              Pattern INPUTS1_F32_ID : Inputs1_f32.txt 
+              Pattern PARAMS1_F32_ID : Params1_f32.txt 
+              Pattern PROBAS1_F32_ID : Probas1_f32.txt
+              Pattern PREDICTS1_S16_ID : Predicts1_s16.txt
+
+              Output  OUT_PROBA_F32_ID : Probas
+              Output  OUT_PREDICT_S16_ID : Predicts
+
+              Functions {
+                 arm_gaussian_naive_bayes_predict_f32:test_gaussian_naive_bayes_predict_f32
+              }
+           }
+        }
+
+        group Distance Tests {
+           class = DistanceTests
+           folder = Distance
+
+           suite Distance Tests F32 {
+              class = DistanceTestsF32
+              folder = DistanceF32
+
+              Pattern DIMS_S16_ID : Dims1_s16.txt 
+              Pattern DIMS_MINKOWSKI_S16_ID : Dims9_s16.txt 
+
+              Pattern INPUTA_F32_ID : InputA1_f32.txt
+              Pattern INPUTB_F32_ID : InputB1_f32.txt
+
+              Pattern INPUTA_JEN_F32_ID : InputA8_f32.txt
+              Pattern INPUTB_JEN_F32_ID : InputB8_f32.txt
+
+              Pattern REF1_F32_ID : Ref1_f32.txt
+              Pattern REF2_F32_ID : Ref2_f32.txt
+              Pattern REF3_F32_ID : Ref3_f32.txt
+              Pattern REF4_F32_ID : Ref4_f32.txt
+              Pattern REF5_F32_ID : Ref5_f32.txt
+              Pattern REF6_F32_ID : Ref6_f32.txt
+              Pattern REF7_F32_ID : Ref7_f32.txt
+              Pattern REF8_F32_ID : Ref8_f32.txt
+              Pattern REF9_F32_ID : Ref9_f32.txt
+
+              Output  OUT_F32_ID : Output
+              Output  TMPA_F32_ID : TmpA
+              Output  TMPB_F32_ID : TmpB
+
+              Functions {
+                 arm_braycurtis_distance_f32:test_braycurtis_distance_f32
+                 arm_canberra_distance_f32:test_canberra_distance_f32
+                 arm_chebyshev_distance_f32:test_chebyshev_distance_f32
+                 arm_cityblock_distance_f32:test_cityblock_distance_f32
+                 arm_correlation_distance_f32:test_correlation_distance_f32
+                 arm_cosine_distance_f32:test_cosine_distance_f32
+                 arm_euclidean_distance_f32:test_euclidean_distance_f32
+                 arm_jensenshannon_distance_f32:test_jensenshannon_distance_f32
+                 arm_minkowski_distance_f32:test_minkowski_distance_f32
+              }
+           }
+
+           suite Distance Tests U32 {
+              class = DistanceTestsU32
+              folder = DistanceU32
+
+              Pattern DIMS_S16_ID : Dims1_s16.txt 
+
+              Pattern INPUTA_U32_ID : InputA1_u32.txt
+              Pattern INPUTB_U32_ID : InputB1_u32.txt
+
+              Pattern REF1_F32_ID : Ref1_f32.txt
+              Pattern REF2_F32_ID : Ref2_f32.txt
+              Pattern REF3_F32_ID : Ref3_f32.txt
+              Pattern REF4_F32_ID : Ref4_f32.txt
+              Pattern REF5_F32_ID : Ref5_f32.txt
+              Pattern REF6_F32_ID : Ref6_f32.txt
+              Pattern REF7_F32_ID : Ref7_f32.txt
+              Pattern REF8_F32_ID : Ref8_f32.txt
+              Pattern REF9_F32_ID : Ref9_f32.txt
+
+               Output  OUT_F32_ID : Output
+
+              Functions {
+                 arm_dice_distance:test_dice_distance
+                 arm_hamming_distance:test_hamming_distance
+                 arm_jaccard_distance:test_jaccard_distance
+                 arm_kulsinski_distance:test_kulsinski_distance
+                 arm_rogerstanimoto_distance:test_rogerstanimoto_distance
+                 arm_russellrao_distance:test_russellrao_distance
+                 arm_sokalmichener_distance:test_sokalmichener_distance
+                 arm_sokalsneath_distance:test_sokalsneath_distance
+                 arm_yule_distance:test_yule_distance
+              }
+           }
+        }
+
+        group Transform Tests {
+           class = TransformTests
+           folder = Transform 
+
+           suite Transform F32 {
+              class = TransformF32
+              folder = TransformF32
+
+              Pattern INPUTS_CFFT_NOISY_16_F32_ID : ComplexInputSamples_Noisy_16_1_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_16_F32_ID : ComplexInputIFFTSamples_Noisy_16_1_f32.txt 
+              Pattern REF_CFFT_NOISY_16_F32_ID : ComplexFFTSamples_Noisy_16_1_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_32_F32_ID : ComplexInputSamples_Noisy_32_2_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_32_F32_ID : ComplexInputIFFTSamples_Noisy_32_2_f32.txt 
+              Pattern REF_CFFT_NOISY_32_F32_ID : ComplexFFTSamples_Noisy_32_2_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_64_F32_ID : ComplexInputSamples_Noisy_64_3_f32.txt
+              Pattern INPUTS_CIFFT_NOISY_64_F32_ID : ComplexInputIFFTSamples_Noisy_64_3_f32.txt 
+              Pattern REF_CFFT_NOISY_64_F32_ID : ComplexFFTSamples_Noisy_64_3_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_128_F32_ID : ComplexInputSamples_Noisy_128_4_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_128_F32_ID : ComplexInputIFFTSamples_Noisy_128_4_f32.txt 
+              Pattern REF_CFFT_NOISY_128_F32_ID : ComplexFFTSamples_Noisy_128_4_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_256_F32_ID : ComplexInputSamples_Noisy_256_5_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_256_F32_ID : ComplexInputIFFTSamples_Noisy_256_5_f32.txt 
+              Pattern REF_CFFT_NOISY_256_F32_ID : ComplexFFTSamples_Noisy_256_5_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_512_F32_ID : ComplexInputSamples_Noisy_512_6_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_512_F32_ID : ComplexInputIFFTSamples_Noisy_512_6_f32.txt 
+              Pattern REF_CFFT_NOISY_512_F32_ID : ComplexFFTSamples_Noisy_512_6_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_1024_F32_ID : ComplexInputSamples_Noisy_1024_7_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_1024_F32_ID : ComplexInputIFFTSamples_Noisy_1024_7_f32.txt 
+              Pattern REF_CFFT_NOISY_1024_F32_ID : ComplexFFTSamples_Noisy_1024_7_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_2048_F32_ID : ComplexInputSamples_Noisy_2048_8_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_2048_F32_ID : ComplexInputIFFTSamples_Noisy_2048_8_f32.txt 
+              Pattern REF_CFFT_NOISY_2048_F32_ID : ComplexFFTSamples_Noisy_2048_8_f32.txt 
+
+              Pattern INPUTS_CFFT_NOISY_4096_F32_ID : ComplexInputSamples_Noisy_4096_9_f32.txt 
+              Pattern INPUTS_CIFFT_NOISY_4096_F32_ID : ComplexInputIFFTSamples_Noisy_4096_9_f32.txt 
+              Pattern REF_CFFT_NOISY_4096_F32_ID : ComplexFFTSamples_Noisy_4096_9_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_16_F32_ID : ComplexInputSamples_Step_16_10_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_16_F32_ID : ComplexInputIFFTSamples_Step_16_10_f32.txt 
+              Pattern REF_CFFT_STEP_16_F32_ID : ComplexFFTSamples_Step_16_10_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_32_F32_ID : ComplexInputSamples_Step_32_11_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_32_F32_ID : ComplexInputIFFTSamples_Step_32_11_f32.txt 
+              Pattern REF_CFFT_STEP_32_F32_ID : ComplexFFTSamples_Step_32_11_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_64_F32_ID : ComplexInputSamples_Step_64_12_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_64_F32_ID : ComplexInputIFFTSamples_Step_64_12_f32.txt 
+              Pattern REF_CFFT_STEP_64_F32_ID : ComplexFFTSamples_Step_64_12_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_128_F32_ID : ComplexInputSamples_Step_128_13_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_128_F32_ID : ComplexInputIFFTSamples_Step_128_13_f32.txt 
+              Pattern REF_CFFT_STEP_128_F32_ID : ComplexFFTSamples_Step_128_13_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_256_F32_ID : ComplexInputSamples_Step_256_14_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_256_F32_ID : ComplexInputIFFTSamples_Step_256_14_f32.txt 
+              Pattern REF_CFFT_STEP_256_F32_ID : ComplexFFTSamples_Step_256_14_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_512_F32_ID : ComplexInputSamples_Step_512_15_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_512_F32_ID : ComplexInputIFFTSamples_Step_512_15_f32.txt 
+              Pattern REF_CFFT_STEP_512_F32_ID : ComplexFFTSamples_Step_512_15_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_1024_F32_ID : ComplexInputSamples_Step_1024_16_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_1024_F32_ID : ComplexInputIFFTSamples_Step_1024_16_f32.txt 
+              Pattern REF_CFFT_STEP_1024_F32_ID : ComplexFFTSamples_Step_1024_16_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_2048_F32_ID : ComplexInputSamples_Step_2048_17_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_2048_F32_ID : ComplexInputIFFTSamples_Step_2048_17_f32.txt 
+              Pattern REF_CFFT_STEP_2048_F32_ID : ComplexFFTSamples_Step_2048_17_f32.txt 
+
+              Pattern INPUTS_CFFT_STEP_4096_F32_ID : ComplexInputSamples_Step_4096_18_f32.txt 
+              Pattern INPUTS_CIFFT_STEP_4096_F32_ID : ComplexInputIFFTSamples_Step_4096_18_f32.txt 
+              Pattern REF_CFFT_STEP_4096_F32_ID : ComplexFFTSamples_Step_4096_18_f32.txt 
+
+              Output  OUTPUT_CFFT_F32_ID : ComplexFFTSamples
+
+              Functions {
+                 cfft_noisy_16_f32:test_cfft_f32
+                 cfft_noisy_32_f32:test_cfft_f32
+                 cfft_noisy_64_f32:test_cfft_f32
+                 cfft_noisy_128_f32:test_cfft_f32
+                 cfft_noisy_256_f32:test_cfft_f32
+                 cfft_noisy_512_f32:test_cfft_f32
+                 cfft_noisy_1024_f32:test_cfft_f32
+                 cfft_noisy_2048_f32:test_cfft_f32
+                 cfft_noisy_4096_f32:test_cfft_f32
+                 cfft_step_16_f32:test_cfft_f32
+                 cfft_step_32_f32:test_cfft_f32
+                 cfft_step_64_f32:test_cfft_f32
+                 cfft_step_128_f32:test_cfft_f32
+                 cfft_step_256_f32:test_cfft_f32
+                 cfft_step_512_f32:test_cfft_f32
+                 cfft_step_1024_f32:test_cfft_f32
+                 cfft_step_2048_f32:test_cfft_f32
+                 cfft_step_4096_f32:test_cfft_f32
+                 cifft_noisy_16_f32:test_cfft_f32
+                 cifft_noisy_32_f32:test_cfft_f32
+                 cifft_noisy_64_f32:test_cfft_f32
+                 cifft_noisy_128_f32:test_cfft_f32
+                 cifft_noisy_256_f32:test_cfft_f32
+                 cifft_noisy_512_f32:test_cfft_f32
+                 cifft_noisy_1024_f32:test_cfft_f32
+                 cifft_noisy_2048_f32:test_cfft_f32
+                 cifft_noisy_4096_f32:test_cfft_f32
+                 cifft_step_16_f32:test_cfft_f32
+                 cifft_step_32_f32:test_cfft_f32
+                 cifft_step_64_f32:test_cfft_f32
+                 cifft_step_128_f32:test_cfft_f32
+                 cifft_step_256_f32:test_cfft_f32
+                 cifft_step_512_f32:test_cfft_f32
+                 cifft_step_1024_f32:test_cfft_f32
+                 cifft_step_2048_f32:test_cfft_f32
+                 cifft_step_4096_f32:test_cfft_f32
+              }
+
+            }
+
+           suite Transform Q31 {
+              class = TransformQ31
+              folder = TransformQ31
+
+              Pattern INPUTS_CFFT_NOISY_16_Q31_ID : ComplexInputSamples_Noisy_16_1_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_16_Q31_ID : ComplexInputIFFTSamples_Noisy_16_1_q31.txt 
+              Pattern REF_CFFT_NOISY_16_Q31_ID : ComplexFFTSamples_Noisy_16_1_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_32_Q31_ID : ComplexInputSamples_Noisy_32_2_q31.txt
+              Pattern INPUTS_CIFFT_NOISY_32_Q31_ID : ComplexInputIFFTSamples_Noisy_32_2_q31.txt  
+              Pattern REF_CFFT_NOISY_32_Q31_ID : ComplexFFTSamples_Noisy_32_2_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_64_Q31_ID : ComplexInputSamples_Noisy_64_3_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_64_Q31_ID : ComplexInputIFFTSamples_Noisy_64_3_q31.txt 
+              Pattern REF_CFFT_NOISY_64_Q31_ID : ComplexFFTSamples_Noisy_64_3_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_128_Q31_ID : ComplexInputSamples_Noisy_128_4_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_128_Q31_ID : ComplexInputIFFTSamples_Noisy_128_4_q31.txt 
+              Pattern REF_CFFT_NOISY_128_Q31_ID : ComplexFFTSamples_Noisy_128_4_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_256_Q31_ID : ComplexInputSamples_Noisy_256_5_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_256_Q31_ID : ComplexInputIFFTSamples_Noisy_256_5_q31.txt 
+              Pattern REF_CFFT_NOISY_256_Q31_ID : ComplexFFTSamples_Noisy_256_5_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_512_Q31_ID : ComplexInputSamples_Noisy_512_6_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_512_Q31_ID : ComplexInputIFFTSamples_Noisy_512_6_q31.txt 
+              Pattern REF_CFFT_NOISY_512_Q31_ID : ComplexFFTSamples_Noisy_512_6_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_1024_Q31_ID : ComplexInputSamples_Noisy_1024_7_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_1024_Q31_ID : ComplexInputIFFTSamples_Noisy_1024_7_q31.txt 
+              Pattern REF_CFFT_NOISY_1024_Q31_ID : ComplexFFTSamples_Noisy_1024_7_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_2048_Q31_ID : ComplexInputSamples_Noisy_2048_8_q31.txt 
+              Pattern INPUTS_CIFFT_NOISY_2048_Q31_ID : ComplexInputIFFTSamples_Noisy_2048_8_q31.txt 
+              Pattern REF_CFFT_NOISY_2048_Q31_ID : ComplexFFTSamples_Noisy_2048_8_q31.txt 
+
+              Pattern INPUTS_CFFT_NOISY_4096_Q31_ID : ComplexInputSamples_Noisy_4096_9_q31.txt
+              Pattern INPUTS_CIFFT_NOISY_4096_Q31_ID : ComplexInputIFFTSamples_Noisy_4096_9_q31.txt  
+              Pattern REF_CFFT_NOISY_4096_Q31_ID : ComplexFFTSamples_Noisy_4096_9_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_16_Q31_ID : ComplexInputSamples_Step_16_10_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_16_Q31_ID : ComplexInputIFFTSamples_Step_16_10_q31.txt 
+              Pattern REF_CFFT_STEP_16_Q31_ID : ComplexFFTSamples_Step_16_10_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_32_Q31_ID : ComplexInputSamples_Step_32_11_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_32_Q31_ID : ComplexInputIFFTSamples_Step_32_11_q31.txt
+              Pattern REF_CFFT_STEP_32_Q31_ID : ComplexFFTSamples_Step_32_11_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_64_Q31_ID : ComplexInputSamples_Step_64_12_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_64_Q31_ID : ComplexInputIFFTSamples_Step_64_12_q31.txt
+              Pattern REF_CFFT_STEP_64_Q31_ID : ComplexFFTSamples_Step_64_12_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_128_Q31_ID : ComplexInputSamples_Step_128_13_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_128_Q31_ID : ComplexInputIFFTSamples_Step_128_13_q31.txt
+              Pattern REF_CFFT_STEP_128_Q31_ID : ComplexFFTSamples_Step_128_13_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_256_Q31_ID : ComplexInputSamples_Step_256_14_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_256_Q31_ID : ComplexInputIFFTSamples_Step_256_14_q31.txt
+              Pattern REF_CFFT_STEP_256_Q31_ID : ComplexFFTSamples_Step_256_14_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_512_Q31_ID : ComplexInputSamples_Step_512_15_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_512_Q31_ID : ComplexInputIFFTSamples_Step_512_15_q31.txt
+              Pattern REF_CFFT_STEP_512_Q31_ID : ComplexFFTSamples_Step_512_15_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_1024_Q31_ID : ComplexInputSamples_Step_1024_16_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_1024_Q31_ID : ComplexInputIFFTSamples_Step_1024_16_q31.txt
+              Pattern REF_CFFT_STEP_1024_Q31_ID : ComplexFFTSamples_Step_1024_16_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_2048_Q31_ID : ComplexInputSamples_Step_2048_17_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_2048_Q31_ID : ComplexInputIFFTSamples_Step_2048_17_q31.txt
+              Pattern REF_CFFT_STEP_2048_Q31_ID : ComplexFFTSamples_Step_2048_17_q31.txt 
+
+              Pattern INPUTS_CFFT_STEP_4096_Q31_ID : ComplexInputSamples_Step_4096_18_q31.txt 
+              Pattern INPUTS_CIFFT_STEP_4096_Q31_ID : ComplexInputIFFTSamples_Step_4096_18_q31.txt
+              Pattern REF_CFFT_STEP_4096_Q31_ID : ComplexFFTSamples_Step_4096_18_q31.txt 
+
+              Output  OUTPUT_CFFT_Q31_ID : ComplexFFTSamples
+              Output  OUTPUT_ICFFT_Q31_ID : ComplexIFFTSamples
+
+              Functions {
+                 cfft_noisy_16_q31:test_cfft_q31
+                 cfft_noisy_32_q31:test_cfft_q31
+                 cfft_noisy_64_q31:test_cfft_q31
+                 cfft_noisy_128_q31:test_cfft_q31
+                 cfft_noisy_256_q31:test_cfft_q31
+                 cfft_noisy_512_q31:test_cfft_q31
+                 cfft_noisy_1024_q31:test_cfft_q31
+                 cfft_noisy_2048_q31:test_cfft_q31
+                 cfft_noisy_4096_q31:test_cfft_q31
+                 cfft_step_16_q31:test_cfft_q31
+                 cfft_step_32_q31:test_cfft_q31
+                 cfft_step_64_q31:test_cfft_q31
+                 cfft_step_128_q31:test_cfft_q31
+                 cfft_step_256_q31:test_cfft_q31
+                 cfft_step_512_q31:test_cfft_q31
+                 cfft_step_1024_q31:test_cfft_q31
+                 cfft_step_2048_q31:test_cfft_q31
+                 cfft_step_4096_q31:test_cfft_q31
+                 cifft_noisy_16_q31:test_cifft_q31
+                 cifft_noisy_32_q31:test_cifft_q31
+                 cifft_noisy_64_q31:test_cifft_q31
+                 cifft_noisy_128_q31:test_cifft_q31
+                 cifft_noisy_256_q31:test_cifft_q31
+                 cifft_noisy_512_q31:test_cifft_q31
+                 cifft_noisy_1024_q31:test_cifft_q31
+                 cifft_noisy_2048_q31:test_cifft_q31
+                 cifft_noisy_4096_q31:test_cifft_q31
+                 cifft_step_16_q31:test_cifft_q31
+                 cifft_step_32_q31:test_cifft_q31
+                 cifft_step_64_q31:test_cifft_q31
+                 cifft_step_128_q31:test_cifft_q31
+                 cifft_step_256_q31:test_cifft_q31
+                 cifft_step_512_q31:test_cifft_q31
+                 cifft_step_1024_q31:test_cifft_q31
+                 cifft_step_2048_q31:test_cifft_q31
+                 cifft_step_4096_q31:test_cifft_q31
+              }
+
+            }
+
+           suite Transform Q15 {
+              class = TransformQ15
+              folder = TransformQ15
+
+              Pattern INPUTS_CFFT_NOISY_16_Q15_ID : ComplexInputSamples_Noisy_16_1_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_16_Q15_ID : ComplexInputIFFTSamples_Noisy_16_1_q15.txt 
+              Pattern REF_CFFT_NOISY_16_Q15_ID : ComplexFFTSamples_Noisy_16_1_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_32_Q15_ID : ComplexInputSamples_Noisy_32_2_q15.txt
+              Pattern INPUTS_CIFFT_NOISY_32_Q15_ID : ComplexInputIFFTSamples_Noisy_32_2_q15.txt  
+              Pattern REF_CFFT_NOISY_32_Q15_ID : ComplexFFTSamples_Noisy_32_2_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_64_Q15_ID : ComplexInputSamples_Noisy_64_3_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_64_Q15_ID : ComplexInputIFFTSamples_Noisy_64_3_q15.txt 
+              Pattern REF_CFFT_NOISY_64_Q15_ID : ComplexFFTSamples_Noisy_64_3_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_128_Q15_ID : ComplexInputSamples_Noisy_128_4_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_128_Q15_ID : ComplexInputIFFTSamples_Noisy_128_4_q15.txt 
+              Pattern REF_CFFT_NOISY_128_Q15_ID : ComplexFFTSamples_Noisy_128_4_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_256_Q15_ID : ComplexInputSamples_Noisy_256_5_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_256_Q15_ID : ComplexInputIFFTSamples_Noisy_256_5_q15.txt 
+              Pattern REF_CFFT_NOISY_256_Q15_ID : ComplexFFTSamples_Noisy_256_5_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_512_Q15_ID : ComplexInputSamples_Noisy_512_6_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_512_Q15_ID : ComplexInputIFFTSamples_Noisy_512_6_q15.txt 
+              Pattern REF_CFFT_NOISY_512_Q15_ID : ComplexFFTSamples_Noisy_512_6_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_1024_Q15_ID : ComplexInputSamples_Noisy_1024_7_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_1024_Q15_ID : ComplexInputIFFTSamples_Noisy_1024_7_q15.txt 
+              Pattern REF_CFFT_NOISY_1024_Q15_ID : ComplexFFTSamples_Noisy_1024_7_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_2048_Q15_ID : ComplexInputSamples_Noisy_2048_8_q15.txt 
+              Pattern INPUTS_CIFFT_NOISY_2048_Q15_ID : ComplexInputIFFTSamples_Noisy_2048_8_q15.txt 
+              Pattern REF_CFFT_NOISY_2048_Q15_ID : ComplexFFTSamples_Noisy_2048_8_q15.txt 
+
+              Pattern INPUTS_CFFT_NOISY_4096_Q15_ID : ComplexInputSamples_Noisy_4096_9_q15.txt
+              Pattern INPUTS_CIFFT_NOISY_4096_Q15_ID : ComplexInputIFFTSamples_Noisy_4096_9_q15.txt  
+              Pattern REF_CFFT_NOISY_4096_Q15_ID : ComplexFFTSamples_Noisy_4096_9_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_16_Q15_ID : ComplexInputSamples_Step_16_10_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_16_Q15_ID : ComplexInputIFFTSamples_Step_16_10_q15.txt 
+              Pattern REF_CFFT_STEP_16_Q15_ID : ComplexFFTSamples_Step_16_10_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_32_Q15_ID : ComplexInputSamples_Step_32_11_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_32_Q15_ID : ComplexInputIFFTSamples_Step_32_11_q15.txt
+              Pattern REF_CFFT_STEP_32_Q15_ID : ComplexFFTSamples_Step_32_11_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_64_Q15_ID : ComplexInputSamples_Step_64_12_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_64_Q15_ID : ComplexInputIFFTSamples_Step_64_12_q15.txt
+              Pattern REF_CFFT_STEP_64_Q15_ID : ComplexFFTSamples_Step_64_12_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_128_Q15_ID : ComplexInputSamples_Step_128_13_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_128_Q15_ID : ComplexInputIFFTSamples_Step_128_13_q15.txt
+              Pattern REF_CFFT_STEP_128_Q15_ID : ComplexFFTSamples_Step_128_13_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_256_Q15_ID : ComplexInputSamples_Step_256_14_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_256_Q15_ID : ComplexInputIFFTSamples_Step_256_14_q15.txt
+              Pattern REF_CFFT_STEP_256_Q15_ID : ComplexFFTSamples_Step_256_14_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_512_Q15_ID : ComplexInputSamples_Step_512_15_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_512_Q15_ID : ComplexInputIFFTSamples_Step_512_15_q15.txt
+              Pattern REF_CFFT_STEP_512_Q15_ID : ComplexFFTSamples_Step_512_15_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_1024_Q15_ID : ComplexInputSamples_Step_1024_16_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_1024_Q15_ID : ComplexInputIFFTSamples_Step_1024_16_q15.txt
+              Pattern REF_CFFT_STEP_1024_Q15_ID : ComplexFFTSamples_Step_1024_16_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_2048_Q15_ID : ComplexInputSamples_Step_2048_17_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_2048_Q15_ID : ComplexInputIFFTSamples_Step_2048_17_q15.txt
+              Pattern REF_CFFT_STEP_2048_Q15_ID : ComplexFFTSamples_Step_2048_17_q15.txt 
+
+              Pattern INPUTS_CFFT_STEP_4096_Q15_ID : ComplexInputSamples_Step_4096_18_q15.txt 
+              Pattern INPUTS_CIFFT_STEP_4096_Q15_ID : ComplexInputIFFTSamples_Step_4096_18_q15.txt
+              Pattern REF_CFFT_STEP_4096_Q15_ID : ComplexFFTSamples_Step_4096_18_q15.txt 
+
+              Output  OUTPUT_CFFT_Q15_ID : ComplexFFTSamples
+              Output  OUTPUT_ICFFT_Q15_ID : ComplexIFFTSamples
+
+              Functions {
+                 cfft_noisy_16_q15:test_cfft_q15
+                 cfft_noisy_32_q15:test_cfft_q15
+                 cfft_noisy_64_q15:test_cfft_q15
+                 cfft_noisy_128_q15:test_cfft_q15
+                 cfft_noisy_256_q15:test_cfft_q15
+                 cfft_noisy_512_q15:test_cfft_q15
+                 cfft_noisy_1024_q15:test_cfft_q15
+                 cfft_noisy_2048_q15:test_cfft_q15
+                 cfft_noisy_4096_q15:test_cfft_q15
+                 cfft_step_16_q15:test_cfft_q15
+                 cfft_step_32_q15:test_cfft_q15
+                 cfft_step_64_q15:test_cfft_q15
+                 cfft_step_128_q15:test_cfft_q15
+                 cfft_step_256_q15:test_cfft_q15
+                 cfft_step_512_q15:test_cfft_q15
+                 cfft_step_1024_q15:test_cfft_q15
+                 cfft_step_2048_q15:test_cfft_q15
+                 cfft_step_4096_q15:test_cfft_q15
+                 cifft_noisy_16_q15:test_cifft_q15
+                 cifft_noisy_32_q15:test_cifft_q15
+                 cifft_noisy_64_q15:test_cifft_q15
+                 cifft_noisy_128_q15:test_cifft_q15
+                 cifft_noisy_256_q15:test_cifft_q15
+                 disabled {cifft_noisy_512_q15:test_cifft_q15}
+                 disabled {cifft_noisy_1024_q15:test_cifft_q15}
+                 disabled {cifft_noisy_2048_q15:test_cifft_q15}
+                 disabled {cifft_noisy_4096_q15:test_cifft_q15}
+                 cifft_step_16_q15:test_cifft_q15
+                 cifft_step_32_q15:test_cifft_q15
+                 cifft_step_64_q15:test_cifft_q15
+                 cifft_step_128_q15:test_cifft_q15
+                 cifft_step_256_q15:test_cifft_q15
+                 disabled {cifft_step_512_q15:test_cifft_q15}
+                 disabled {cifft_step_1024_q15:test_cifft_q15}
+                 disabled {cifft_step_2048_q15:test_cifft_q15}
+                 disabled {cifft_step_4096_q15:test_cifft_q15}
+              }
+
+            }
+        }
+    }
+
+    group NN Tests
+    {
+       class = NNTests
+       folder = NN
+
+       suite Fully Connected {
+         class = FullyConnected 
+         folder = FullyConnected
+
+         // TestCase_[nbBatches]_[colDim]_[rowDim]_xxx_[testNb].txt
+         // 1
+         Pattern INPUT1_S8_ID : TestCase_1_10_4_input_1.txt
+         Pattern BIAS1_S8_ID : TestCase_1_10_4_bias_1.txt
+         Pattern WEIGHT1_S8_ID : TestCase_1_10_4_weights_1.txt
+         Pattern REF1_S8_ID : TestCase_1_10_4_output_1.txt
+
+         // 2
+         Pattern INPUT2_S8_ID : TestCase_1_8_9_input_2.txt
+         Pattern BIAS2_S8_ID : TestCase_1_8_9_bias_2.txt
+         Pattern WEIGHT2_S8_ID : TestCase_1_8_9_weights_2.txt
+         Pattern REF2_S8_ID : TestCase_1_8_9_output_2.txt
+
+         // 3
+         Pattern INPUT3_S8_ID : TestCase_1_10_4_input_3.txt
+         Pattern BIAS3_S8_ID : TestCase_1_10_4_bias_3.txt
+         Pattern WEIGHT3_S8_ID : TestCase_1_10_4_weights_3.txt
+         Pattern REF3_S8_ID : TestCase_1_10_4_output_3.txt
+
+         // 4
+         Pattern INPUT4_S8_ID : TestCase_1_9_1_input_4.txt
+         Pattern BIAS4_S8_ID : TestCase_1_9_1_bias_4.txt
+         Pattern WEIGHT4_S8_ID : TestCase_1_9_1_weights_4.txt
+         Pattern REF4_S8_ID : TestCase_1_9_1_output_4.txt
+
+         // 5
+         Pattern INPUT5_S8_ID : TestCase_1_8_8_input_5.txt
+         Pattern BIAS5_S8_ID : TestCase_1_8_8_bias_5.txt
+         Pattern WEIGHT5_S8_ID : TestCase_1_8_8_weights_5.txt
+         Pattern REF5_S8_ID : TestCase_1_8_8_output_5.txt
+
+         // 6
+         Pattern INPUT6_S8_ID : TestCase_9_6_1_input_6.txt
+         Pattern BIAS6_S8_ID : TestCase_9_6_1_bias_6.txt
+         Pattern WEIGHT6_S8_ID : TestCase_9_6_1_weights_6.txt
+         Pattern REF6_S8_ID : TestCase_9_6_1_output_6.txt
+
+         // 7
+         Pattern INPUT7_S8_ID : TestCase_8_8_1_input_7.txt
+         Pattern BIAS7_S8_ID : TestCase_8_8_1_bias_7.txt
+         Pattern WEIGHT7_S8_ID : TestCase_8_8_1_weights_7.txt
+         Pattern REF7_S8_ID : TestCase_8_8_1_output_7.txt
+
+         // 8
+         Pattern INPUT8_S8_ID : TestCase_4_10_1_input_8.txt
+         Pattern BIAS8_S8_ID : TestCase_4_10_1_bias_8.txt
+         Pattern WEIGHT8_S8_ID : TestCase_4_10_1_weights_8.txt
+         Pattern REF8_S8_ID : TestCase_4_10_1_output_8.txt
+
+         // 9
+         Pattern INPUT9_S8_ID : TestCase_9_6_1_input_9.txt
+         Pattern BIAS9_S8_ID : TestCase_9_6_1_bias_9.txt
+         Pattern WEIGHT9_S8_ID : TestCase_9_6_1_weights_9.txt
+         Pattern REF9_S8_ID : TestCase_9_6_1_output_9.txt
+
+         // 10
+         Pattern INPUT10_S8_ID : TestCase_4_10_1_input_10.txt
+         Pattern BIAS10_S8_ID : TestCase_4_10_1_bias_10.txt
+         Pattern WEIGHT10_S8_ID : TestCase_4_10_1_weights_10.txt
+         Pattern REF10_S8_ID : TestCase_4_10_1_output_10.txt
+
+         // 11
+         Pattern INPUT11_S8_ID : TestCase_8_8_1_input_11.txt
+         Pattern BIAS11_S8_ID : TestCase_8_8_1_bias_11.txt
+         Pattern WEIGHT11_S8_ID : TestCase_8_8_1_weights_11.txt
+         Pattern REF11_S8_ID : TestCase_8_8_1_output_11.txt
+
+         // 12
+         Pattern INPUT12_S8_ID : TestCase_9_8_4_input_12.txt
+         Pattern BIAS12_S8_ID : TestCase_9_8_4_bias_12.txt
+         Pattern WEIGHT12_S8_ID : TestCase_9_8_4_weights_12.txt
+         Pattern REF12_S8_ID : TestCase_9_8_4_output_12.txt
+
+         // 13
+         Pattern INPUT13_S8_ID : TestCase_8_8_5_input_13.txt
+         Pattern BIAS13_S8_ID : TestCase_8_8_5_bias_13.txt
+         Pattern WEIGHT13_S8_ID : TestCase_8_8_5_weights_13.txt
+         Pattern REF13_S8_ID : TestCase_8_8_5_output_13.txt
+
+         // 14
+         Pattern INPUT14_S8_ID : TestCase_4_7_3_input_14.txt
+         Pattern BIAS14_S8_ID : TestCase_4_7_3_bias_14.txt
+         Pattern WEIGHT14_S8_ID : TestCase_4_7_3_weights_14.txt
+         Pattern REF14_S8_ID : TestCase_4_7_3_output_14.txt
+
+         // 15
+         Pattern INPUT15_S8_ID : TestCase_8_7_4_input_15.txt
+         Pattern BIAS15_S8_ID : TestCase_8_7_4_bias_15.txt
+         Pattern WEIGHT15_S8_ID : TestCase_8_7_4_weights_15.txt
+         Pattern REF15_S8_ID : TestCase_8_7_4_output_15.txt
+
+         Output  OUTPUT_S8_ID : Output
+         Output  TEMP_S16_ID : Temp
+         
+         Functions {
+            fully_connected_tflite_s8 test1:test_fully_connected_tflite_s8
+            fully_connected_tflite_s8 test2:test_fully_connected_tflite_s8
+            fully_connected_tflite_s8 test3:test_fully_connected_tflite_s8
+            fully_connected_tflite_s8 test4:test_fully_connected_tflite_s8
+            fully_connected_tflite_s8 test5:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test6:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test7:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test8:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test9:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test10:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test11:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test12:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test13:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test14:test_fully_connected_tflite_s8
+            matmul_tflite_s8 test15:test_fully_connected_tflite_s8
+         }
+       }
+
+       suite Pooling {
+          class = Pooling
+          folder = Pooling
+
+          Pattern INPUT1_S8_ID : Input1.txt
+          Pattern REF1_S8_ID : Ref1.txt
+
+          Pattern INPUT2_S8_ID : Input2.txt
+          Pattern REF2_S8_ID : Ref2.txt
+
+          Pattern INPUT3_S8_ID : Input3.txt
+          Pattern REF3_S8_ID : Ref3.txt
+
+          Pattern INPUT4_S8_ID : Input4.txt
+          Pattern REF4_S8_ID : Ref4.txt
+
+          Pattern INPUT5_S8_ID : Input5.txt
+          Pattern REF5_S8_ID : Ref5.txt
+
+          Pattern INPUT6_S8_ID : Input6.txt
+          Pattern REF6_S8_ID : Ref6.txt
+
+          Pattern INPUT7_S8_ID : Input7.txt
+          Pattern REF7_S8_ID : Ref7.txt
+
+          Pattern INPUT8_S8_ID : Input8.txt
+          Pattern REF8_S8_ID : Ref8.txt
+
+          Output  OUTPUT_S8_ID : Output
+          Output  TEMP_S8_ID : Temp
+          Output  TEMPINPUT_S8_ID : TempInput
+
+          Functions {
+            arm_avgpool_s8 Test 1:test_avgpool_s8
+            arm_avgpool_s8 Test 2:test_avgpool_s8
+            arm_avgpool_s8 Test 3:test_avgpool_s8
+            arm_avgpool_s8 Test 4:test_avgpool_s8
+            arm_avgpool_s8 Test 5:test_avgpool_s8
+            arm_avgpool_s8 Test 6:test_avgpool_s8
+            arm_avgpool_s8 Test 7:test_avgpool_s8
+            arm_avgpool_s8 Test 8:test_avgpool_s8
+          }
+       }
+
+       suite Softmax {
+          class = Softmax
+          folder = SoftmaxQ7
+
+          Pattern INPUT1_Q7_ID : InputA1_q7.txt
+          Pattern DIMS1_S16_ID : Dims1_s16.txt
+          Pattern REF1_S16_ID : Ref1_s16.txt
+          Pattern SAMPLES1_Q7_ID : Samples1_q7.txt
+          
+          Output  OUTPUT_S16_ID : Output
+          Output  TEMP_Q7_ID : Temp
+
+          Functions {
+            arm_softmax_q7 Test 1:test_softmax_q7
+            arm_softmax_with_batch_q7 Test 2:test_softmax_with_batch_q7
+          }
+       }
+
+       suite NNSupport {
+          class = NNSupport
+          folder = SupportQ7
+
+          Functions {
+            test_nn_elementwise_add_s8 Test 1:test_nn_elementwise_add_s8
+          }
+       }
+    }
+
+}
