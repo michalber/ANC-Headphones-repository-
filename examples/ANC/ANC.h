@@ -479,7 +479,7 @@ public:
 		volumeLabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
 
 		// Set up Volume Slider box 
-		volumeSlider.setRange(0, 10);		
+		volumeSlider.setRange(0, 3);		
 		volumeSlider.addListener(this);
 		volumeSlider.setValue(1);
 		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
@@ -492,7 +492,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterSizeSlider.setRange(256.0, 4096.0, 128.0);
 		filterSizeSlider.addListener(this);
-		filterSizeSlider.setValue(256);
+		filterSizeSlider.setValue(1024);
 		filterSizeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 
 		// Set up Filter size Label text box 
@@ -503,7 +503,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterMUSlider.setRange(0.00001, 1.0, 0.00001);
 		filterMUSlider.addListener(this);
-		filterMUSlider.setValue(0.68584);
+		filterMUSlider.setValue(0.01);
 		filterMUSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 		
 		// Set up FFT Scale Slider box
