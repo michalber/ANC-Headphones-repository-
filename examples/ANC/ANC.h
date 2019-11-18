@@ -36,9 +36,180 @@
 
 #include "../DemoRunner/Source/ARM_NLMS.h"
 #include "../DemoRunner/Source/config.h"
-#include "../DemoRunner/Source/LPF_coeffs.h"
 
 #include <future>
+
+//==============================================================================
+/** A simple class that acts as an AudioIODeviceCallback and writes the
+	incoming audio data to a WAV file.
+*/
+class AudioRecorder : public AudioIODeviceCallback
+{
+public:
+	AudioRecorder(AudioThumbnail& thumbnailToUpdate)
+		: thumbnail(thumbnailToUpdate)
+	{
+		backgroundThread.startThread();
+	}
+
+	~AudioRecorder() override
+	{
+		stop();
+	}
+
+	//==============================================================================
+	void startRecording(const File& file)
+	{
+		stop();
+
+		if (sampleRate > 0)
+		{
+			// Create an OutputStream to write to our destination file...
+			file.deleteFile();
+
+			if (auto fileStream = std::unique_ptr<FileOutputStream>(file.createOutputStream()))
+			{
+				// Now create a WAV writer object that writes to our output stream...
+				WavAudioFormat wavFormat;
+
+				if (auto writer = wavFormat.createWriterFor(fileStream.get(), sampleRate, 2, 16, {}, 0))
+				{
+					fileStream.release(); // (passes responsibility for deleting the stream to the writer object that is now using it)
+
+					// Now we'll create one of these helper objects which will act as a FIFO buffer, and will
+					// write the data to disk on our background thread.
+					threadedWriter.reset(new AudioFormatWriter::ThreadedWriter(writer, backgroundThread, 32768));
+
+					// Reset our recording thumbnail
+					thumbnail.reset(writer->getNumChannels(), writer->getSampleRate());
+					nextSampleNum = 0;
+
+					// And now, swap over our active writer pointer so that the audio callback will start using it..
+					const ScopedLock sl(writerLock);
+					activeWriter = threadedWriter.get();
+				}
+			}
+		}
+	}
+
+	void stop()
+	{
+		// First, clear this pointer to stop the audio callback from using our writer object..
+		{
+			const ScopedLock sl(writerLock);
+			activeWriter = nullptr;
+		}
+
+		// Now we can delete the writer object. It's done in this order because the deletion could
+		// take a little time while remaining data gets flushed to disk, so it's best to avoid blocking
+		// the audio callback while this happens.
+		threadedWriter.reset();
+	}
+
+	bool isRecording() const
+	{
+		return activeWriter.load() != nullptr;
+	}
+
+	//==============================================================================
+	void audioDeviceAboutToStart(AudioIODevice* device) override
+	{
+		sampleRate = device->getCurrentSampleRate();
+	}
+
+	void audioDeviceStopped() override
+	{
+		sampleRate = 0;
+	}
+
+	void audioDeviceIOCallback(const float** inputChannelData, int numInputChannels,
+		float** outputChannelData, int numOutputChannels,
+		int numSamples) override
+	{
+		const ScopedLock sl(writerLock);
+
+		if (activeWriter.load() != nullptr && numInputChannels >= thumbnail.getNumChannels())
+		{
+			activeWriter.load()->write(inputChannelData, numSamples);
+
+			// Create an AudioBuffer to wrap our incoming data, note that this does no allocations or copies, it simply references our input data
+			AudioBuffer<float> buffer(const_cast<float**> (inputChannelData), thumbnail.getNumChannels(), numSamples);
+			thumbnail.addBlock(nextSampleNum, buffer, 0, numSamples);
+			nextSampleNum += numSamples;
+		}
+
+	}
+
+private:
+	AudioThumbnail& thumbnail;
+	TimeSliceThread backgroundThread{ "Audio Recorder Thread" }; // the thread that will write our audio data to disk
+	std::unique_ptr<AudioFormatWriter::ThreadedWriter> threadedWriter; // the FIFO used to buffer the incoming data
+	double sampleRate = 0.0;
+	int64 nextSampleNum = 0;
+
+	CriticalSection writerLock;
+	std::atomic<AudioFormatWriter::ThreadedWriter*> activeWriter{ nullptr };
+};
+
+//==============================================================================
+class RecordingThumbnail : public Component,
+	private ChangeListener
+{
+public:
+	RecordingThumbnail()
+	{
+		formatManager.registerBasicFormats();
+		thumbnail.addChangeListener(this);
+	}
+
+	~RecordingThumbnail() override
+	{
+		thumbnail.removeChangeListener(this);
+	}
+
+	AudioThumbnail& getAudioThumbnail() { return thumbnail; }
+
+	void setDisplayFullThumbnail(bool displayFull)
+	{
+		displayFullThumb = displayFull;
+		repaint();
+	}
+
+	void paint(Graphics& g) override
+	{
+		g.fillAll(Colours::darkgrey);
+		g.setColour(Colours::lightgrey);
+
+		if (thumbnail.getTotalLength() > 0.0)
+		{
+			auto endTime = displayFullThumb ? thumbnail.getTotalLength()
+				: jmax(30.0, thumbnail.getTotalLength());
+
+			auto thumbArea = getLocalBounds();
+			thumbnail.drawChannels(g, thumbArea.reduced(2), 0.0, endTime, 1.0f);
+		}
+		else
+		{
+			g.setFont(14.0f);
+			g.drawFittedText("(No file recorded)", getLocalBounds(), Justification::centred, 2);
+		}
+	}
+
+private:
+	AudioFormatManager formatManager;
+	AudioThumbnailCache thumbnailCache{ 10 };
+	AudioThumbnail thumbnail{ 512, formatManager, thumbnailCache };
+
+	bool displayFullThumb = false;
+
+	void changeListenerCallback(ChangeBroadcaster* source) override
+	{
+		if (source == &thumbnail)
+			repaint();
+	}
+
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RecordingThumbnail)
+};
 
 //==============================================================================
 class ANCInstance : public AudioIODeviceCallback,
@@ -94,9 +265,9 @@ public:
 			wait(-1);
 //			auto start = std::chrono::high_resolution_clock::now();
 #if JUCE_USE_SIMD
-			processSamples((float*)inBlock.getChannelPointer(0), (float*)inBlock.getChannelPointer(1));
+			processSamples((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0));
 #else
-			processSamples((float*)inData.getReadPointer(0), (float*)inData.getReadPointer(1));
+			processSamples((float*)inData.getReadPointer(1), (float*)inData.getReadPointer(0));
 #endif
 //			SNR = arm_snr_f32((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0), numOfSamples);
 //			auto end = std::chrono::high_resolution_clock::now();
@@ -200,7 +371,7 @@ public:
 		}
 		if (nextSNRBlockReady_L && nextSNRBlockReady_P)
 		{
-			SNR = arm_snr_f32(fifo_P, fifo_L, 88200);
+			SNR = arm_snr_f32(fifo_L, fifo_P, 88200);
 
 			zeromem(fifo_L, sizeof(fifo_L));
 			zeromem(fifo_P, sizeof(fifo_P));
@@ -228,7 +399,6 @@ public:
         deviceInputLatency  = device->getInputLatencyInSamples();
         deviceOutputLatency = device->getOutputLatencyInSamples();
 
-
 #if !JUCE_USE_SIMD
 		inData.setSize(2, numOfSamples);
 		outData.setSize(2,numOfSamples);
@@ -254,13 +424,9 @@ public:
 		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		stereoFIR.prepare(spec);
 
-		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 1000.0f);
+		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 14000.0f, 20);
 		stereoIIR.prepare(spec);
 #endif
-
-		arm_fir_init_f32(&arm_filter_nlms, filterSize, (float32_t *)&lmsNormCoeff_f32[0], &firStateNLMS[0], numOfSamples);
-		arm_fir_init_f32(&arm_filter_lpf, 57, (float32_t *)&LPF_Coeffs[0], &firStateLPF[0], numOfSamples);
-
 		startThread();
     }
 	/***************************************************************************//**
@@ -272,8 +438,6 @@ public:
 	 ******************************************************************************/
     void audioDeviceStopped() override 
 	{
-		stereoFIR.reset();
-		stereoIIR.reset();
 	}
 	/***************************************************************************//**
 	 * @brief Callback of IO Audio Device
@@ -290,9 +454,7 @@ public:
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
 		const ScopedLock sl(lock);
-		auto start = std::chrono::high_resolution_clock::now();
-
-
+//		auto start = std::chrono::high_resolution_clock::now();
 #if !JUCE_USE_SIMD
 
 				auto* playBufferL = outData.getReadPointer(0);
@@ -323,54 +485,45 @@ public:
 					++playingSampleNum;
 				}		
 				notify();
-
-				pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
-				pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
-				
+		
 				recordedSampleNum = 0;
 				playingSampleNum = 0;
 #else
 		inBlock	 = dsp::AudioBlock<float>((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
 		outBlock = dsp::AudioBlock<float>((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
-		//auto* inout = channelPointers.getData();
-		//auto n = inBlock.getNumSamples();
+		auto* inout = channelPointers.getData();
+		auto n = inBlock.getNumSamples();
 	
-		//for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
-		//	inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
-		//
-		//AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-		//static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-		//		
-		//stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));	
-		
-
-		arm_fir_f32(&arm_filter_nlms, inputChannelData[0], outputChannelData[0], numSamples);		
-		notify();
-		arm_fir_f32(&arm_filter_lpf, outputChannelData[0], outputChannelData[0], numSamples);
-		arm_scale_f32(outputChannelData[0], volume, outputChannelData[0], numSamples);		
-		//arm_copy_f32(outputChannelData[1], outputChannelData[0], numSamples);
-		FloatVectorOperations::copy(outputChannelData[1], outputChannelData[0], numSamples);
-
-		//stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
-
-		//for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
-		//	inout[ch] = outBlock.getChannelPointer(ch);
-		//	
-		//AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-		//	const_cast<float**> (inout),
-		//	static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-
-		//FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
-
-		//FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
-		//FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
-
 		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
 		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
 
+		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
+			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
+		
+		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
+				
+		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));		
+		
+		notify();
+
+//		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+
+		for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
+			inout[ch] = outBlock.getChannelPointer(ch);
+			
+		AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+			const_cast<float**> (inout),
+			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
+
+		FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
+
+		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
+		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
+
 #endif
-		auto end = std::chrono::high_resolution_clock::now();
-		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+//		auto end = std::chrono::high_resolution_clock::now();
+//		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 	}
 	/***************************************************************************//**
 	 * @brief Function to process new pack of input data 
@@ -421,9 +574,6 @@ private:
 	float errOutput[FRAMES_PER_BUFFER] = { 0 };						// Error data
 	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.1 };	// Array for NLMS algorithm
 	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.1 };					// NLMS Coefficients
-
-	float32_t firStateNLMS[FRAMES_PER_BUFFER + NUM_OF_TAPS - 1];
-	float32_t firStateLPF[FRAMES_PER_BUFFER + NUM_OF_TAPS - 1];
 	
 	float fifo_L[88200];
 	int fifoIndex_L = 0;
@@ -432,9 +582,6 @@ private:
 	float fifo_P[88200];
 	int fifoIndex_P = 0;
 	bool nextSNRBlockReady_P = false;
-
-	arm_fir_instance_f32 arm_filter_nlms;
-	arm_fir_instance_f32 arm_filter_lpf;
 
 #if JUCE_USE_SIMD
 	dsp::AudioBlock<float> inBlock;
@@ -471,7 +618,7 @@ public:
     {
         setOpaque (true);
 		
-		startTimerHz(1);
+		startTimerHz(3);
 
 		// Set up Volume Label text box 
 		volumeLabel.setText("Volume: ", dontSendNotification);		
@@ -479,7 +626,7 @@ public:
 		volumeLabel.setColour(volumeLabel.textColourId, Colour(255, 255, 255));
 
 		// Set up Volume Slider box 
-		volumeSlider.setRange(0, 3);		
+		volumeSlider.setRange(0, 10);		
 		volumeSlider.addListener(this);
 		volumeSlider.setValue(1);
 		volumeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
@@ -492,7 +639,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterSizeSlider.setRange(256.0, 4096.0, 128.0);
 		filterSizeSlider.addListener(this);
-		filterSizeSlider.setValue(1024);
+		filterSizeSlider.setValue(256);
 		filterSizeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 
 		// Set up Filter size Label text box 
@@ -503,7 +650,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterMUSlider.setRange(0.00001, 1.0, 0.00001);
 		filterMUSlider.addListener(this);
-		filterMUSlider.setValue(0.01);
+		filterMUSlider.setValue(0.68584);
 		filterMUSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 		
 		// Set up FFT Scale Slider box
@@ -567,9 +714,41 @@ public:
                                      });
        #endif
 
+		addAndMakeVisible(explanationLabel);
+		explanationLabel.setFont(Font(15.0f, Font::plain));
+		explanationLabel.setJustificationType(Justification::topLeft);
+		explanationLabel.setEditable(false, false, false);
+		explanationLabel.setColour(TextEditor::textColourId, Colours::black);
+		explanationLabel.setColour(TextEditor::backgroundColourId, Colour(0x00000000));
+
+		addAndMakeVisible(recordButton);
+		recordButton.setColour(TextButton::buttonColourId, Colour(0xffff5c5c));
+		recordButton.setColour(TextButton::textColourOnId, Colours::black);
+
+		recordButton.onClick = [this]
+		{
+			if (recorder.isRecording())
+				stopRecording();
+			else
+				startRecording();
+		};
+
+		addAndMakeVisible(recordingThumbnail);
+
+#ifndef JUCE_DEMO_RUNNER
+		RuntimePermissions::request(RuntimePermissions::recordAudio,
+			[this](bool granted)
+		{
+			int numInputChannels = granted ? 2 : 0;
+			audioDeviceManager.initialise(numInputChannels, 2, nullptr, true, {}, nullptr);
+		});
+#endif
+
+
 //		audioDeviceManager.addAudioCallback(latencyTester.get());
         audioDeviceManager.addAudioCallback (liveAudioScroller.get());
 		audioDeviceManager.addAudioCallback(spectrumAnalyser.get());
+		audioDeviceManager.addAudioCallback(&recorder);
 		
         setSize (500, 800);
     }
@@ -582,6 +761,7 @@ public:
 	 ******************************************************************************/
     ~ActiveNoiseCancelling()
     {
+		audioDeviceManager.removeAudioCallback(&recorder);
         audioDeviceManager.removeAudioCallback (liveAudioScroller.get());
         audioDeviceManager.removeAudioCallback (ANC.get());
 		audioDeviceManager.removeAudioCallback(spectrumAnalyser.get());
@@ -666,8 +846,9 @@ public:
     {
         auto b = getLocalBounds().reduced (5);
 
-		volumeSlider.setBounds(b.getX() + 120, b.getY(), b.getWidth() / 2, b.getHeight() / 20);
-		startVisualizigData.setBounds(b.getX() + 120 + b.getWidth() / 2, b.getY(), b.getWidth() / 2 - 120, b.getHeight() / 20);
+		volumeSlider.setBounds(b.getX() + 80, b.getY(), b.getWidth() / 2, b.getHeight() / 20);
+		startVisualizigData.setBounds(b.getX() + 80 + b.getWidth() / 2, b.getY(), b.getWidth() / 4 - 40, b.getHeight() / 20);
+		recordButton.setBounds(b.getX() + 40 + b.getWidth() / 2 + b.getWidth() / 4, b.getY(), b.getWidth() / 4 - 40, b.getHeight() / 20);
 		b.removeFromTop(b.getHeight() / 20);
 		b.removeFromTop(3);
 
@@ -710,6 +891,17 @@ private:
     std::unique_ptr<LiveScrollingAudioDisplay> liveAudioScroller;
 	std::unique_ptr<AnalyserComponent> spectrumAnalyser;
 	std::unique_ptr<FilterVisualizer> filterVisualizer;
+	RecordingThumbnail recordingThumbnail;
+	AudioRecorder recorder{ recordingThumbnail.getAudioThumbnail() };
+	Label explanationLabel{ {}, "This page demonstrates how to record a wave file from the live audio input..\n\n"
+								 #if (JUCE_ANDROID || JUCE_IOS)
+								  "After you are done with your recording you can share with other apps."
+								 #else
+								  "Pressing record will start recording a file in your \"Documents\" folder."
+								 #endif
+	};
+	TextButton recordButton{ "Record" };
+	File lastRecording;
 
     TextButton startTestButton  { "Run ANC" };
 	TextButton startVisualizigData{ "Run/Stop Charts" };
@@ -729,6 +921,41 @@ private:
 	Slider FFTScaleSlider;
 
 	dsp::FIR::Coefficients<float>::Ptr elo;
+
+	void startRecording()
+	{
+		if (!RuntimePermissions::isGranted(RuntimePermissions::writeExternalStorage))
+		{
+			SafePointer<ActiveNoiseCancelling> safeThis(this);
+
+			RuntimePermissions::request(RuntimePermissions::writeExternalStorage,
+				[safeThis](bool granted) mutable
+			{
+				if (granted)
+					safeThis->startRecording();
+			});
+			return;
+		}
+
+		auto parentDir = File::getSpecialLocation(File::userDocumentsDirectory);
+
+		lastRecording = parentDir.getNonexistentChildFile("JUCE Demo Audio Recording", ".wav");
+
+		recorder.startRecording(lastRecording);
+
+		recordButton.setButtonText("Stop");
+		recordingThumbnail.setDisplayFullThumbnail(false);
+	}
+
+	void stopRecording()
+	{
+		recorder.stop();
+
+
+		lastRecording = File();
+		recordButton.setButtonText("Record");
+		recordingThumbnail.setDisplayFullThumbnail(true);
+	}
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ActiveNoiseCancelling)
 };

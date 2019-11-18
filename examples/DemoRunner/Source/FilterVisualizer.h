@@ -53,7 +53,7 @@ public:
 	 * @param
 	 * @return
 	 ******************************************************************************/
-    FilterVisualizer() : Component(), overallGainInDb(0.0f), sampleRate(44100) 
+    FilterVisualizer() : Component(), overallGainInDb(0.0f), sampleRate(48000) 
 	{
 		startTimerHz(2);
 	}
@@ -68,7 +68,7 @@ public:
 	 * @param gridDiv - dB grid iteration value 
 	 * @return
 	 ******************************************************************************/
-    FilterVisualizer(float fMin, float fMax, float dbMin, float dbMax, float gridDiv, bool gainHandleLin = false) : Component(), overallGainInDb(0.0f), sampleRate(44100), s{fMin, fMax, dbMin, dbMax, gridDiv, gainHandleLin} 
+    FilterVisualizer(float fMin, float fMax, float dbMin, float dbMax, float gridDiv, bool gainHandleLin = false) : Component(), overallGainInDb(0.0f), sampleRate(48000), s{fMin, fMax, dbMin, dbMax, gridDiv, gainHandleLin} 
 	{
 		startTimerHz(2);	
 	}

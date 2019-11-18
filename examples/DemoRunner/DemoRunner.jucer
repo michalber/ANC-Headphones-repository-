@@ -6,59 +6,6 @@
               reportAppUsage="1" maxBinaryFileSize="20971520">
   <MAINGROUP id="G8kbr7" name="Active Noise Cancelling">
     <GROUP id="{20E3F84A-29E9-D5FF-4559-1A9E4A70CD60}" name="Source">
-      <FILE id="mKRNis" name="arm_copy_f32.c" compile="1" resource="0" file="Source/arm_copy_f32.c"/>
-      <FILE id="ErjbTj" name="LPF_coeffs.h" compile="1" resource="0" file="Source/LPF_coeffs.h"/>
-      <FILE id="g3SJ70" name="arm_abs_f32.c" compile="1" resource="0" file="Source/arm_abs_f32.c"/>
-      <FILE id="BuStv7" name="arm_add_f32.c" compile="1" resource="0" file="Source/arm_add_f32.c"/>
-      <FILE id="Jc1Hpc" name="arm_dot_prod_f32.c" compile="1" resource="0"
-            file="Source/arm_dot_prod_f32.c"/>
-      <FILE id="dKgIxe" name="arm_mult_f32.c" compile="1" resource="0" file="Source/arm_mult_f32.c"/>
-      <FILE id="XmARoJ" name="arm_negate_f32.c" compile="1" resource="0"
-            file="Source/arm_negate_f32.c"/>
-      <FILE id="eygseU" name="arm_offset_f32.c" compile="1" resource="0"
-            file="Source/arm_offset_f32.c"/>
-      <FILE id="R5TX2e" name="arm_scale_f32.c" compile="1" resource="0" file="Source/arm_scale_f32.c"/>
-      <FILE id="IhCzku" name="arm_sub_f32.c" compile="1" resource="0" file="Source/arm_sub_f32.c"/>
-      <FILE id="g58Bwz" name="arm_bitreversal.c" compile="1" resource="0"
-            file="Source/arm_bitreversal.c"/>
-      <FILE id="abpJ5O" name="arm_bitreversal2.c" compile="1" resource="0"
-            file="Source/arm_bitreversal2.c"/>
-      <FILE id="D2BZY1" name="arm_cfft_f32.c" compile="1" resource="0" file="Source/arm_cfft_f32.c"/>
-      <FILE id="vl7LmW" name="arm_cfft_radix2_f32.c" compile="1" resource="0"
-            file="Source/arm_cfft_radix2_f32.c"/>
-      <FILE id="yeeRm1" name="arm_cfft_radix2_init_f32.c" compile="1" resource="0"
-            file="Source/arm_cfft_radix2_init_f32.c"/>
-      <FILE id="Mzoa01" name="arm_cfft_radix4_f32.c" compile="1" resource="0"
-            file="Source/arm_cfft_radix4_f32.c"/>
-      <FILE id="cUkouw" name="arm_cfft_radix4_init_f32.c" compile="1" resource="0"
-            file="Source/arm_cfft_radix4_init_f32.c"/>
-      <FILE id="Yjo63w" name="arm_cfft_radix8_f32.c" compile="1" resource="0"
-            file="Source/arm_cfft_radix8_f32.c"/>
-      <FILE id="Gwyl9x" name="arm_rfft_f32.c" compile="1" resource="0" file="Source/arm_rfft_f32.c"/>
-      <FILE id="LNaq3F" name="arm_rfft_fast_f32.c" compile="1" resource="0"
-            file="Source/arm_rfft_fast_f32.c"/>
-      <FILE id="xUNurL" name="arm_rfft_fast_init_f32.c" compile="1" resource="0"
-            file="Source/arm_rfft_fast_init_f32.c"/>
-      <FILE id="lJZRpP" name="arm_rfft_init_f32.c" compile="1" resource="0"
-            file="Source/arm_rfft_init_f32.c"/>
-      <FILE id="wnR7rG" name="arm_common_tables.c" compile="1" resource="0"
-            file="Source/arm_common_tables.c"/>
-      <FILE id="tb9dZL" name="arm_const_structs.c" compile="1" resource="0"
-            file="Source/arm_const_structs.c"/>
-      <FILE id="YTsASN" name="arm_fir_f32.c" compile="1" resource="0" file="Source/arm_fir_f32.c"/>
-      <FILE id="XNGaYh" name="arm_fir_init_f32.c" compile="1" resource="0"
-            file="Source/arm_fir_init_f32.c"/>
-      <FILE id="uDvFqT" name="arm_lms_norm_f32.c" compile="1" resource="0"
-            file="Source/arm_lms_norm_f32.c"/>
-      <FILE id="McHcXm" name="arm_lms_norm_init_f32.c" compile="1" resource="0"
-            file="Source/arm_lms_norm_init_f32.c"/>
-      <FILE id="w8bW8t" name="arm_common_tables.h" compile="0" resource="0"
-            file="Source/arm_common_tables.h"/>
-      <FILE id="kA0zwk" name="arm_const_structs.h" compile="0" resource="0"
-            file="Source/arm_const_structs.h"/>
-      <FILE id="ZvMSzG" name="arm_helium_utils.h" compile="0" resource="0"
-            file="Source/arm_helium_utils.h"/>
-      <FILE id="EmXLhL" name="arm_math.h" compile="0" resource="0" file="Source/arm_math.h"/>
       <FILE id="AAsi2d" name="FilterVisualizer.h" compile="0" resource="0"
             file="Source/FilterVisualizer.h"/>
       <FILE id="sVMNPe" name="config.h" compile="0" resource="0" file="Source/config.h"/>
@@ -90,7 +37,7 @@
   </MAINGROUP>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" smallIcon="YyqWd2" bigIcon="YyqWd2"
-                extraDefs="ARM_MATH_CM8&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC&#10;JUCE_USE_SIMD=1&#10;JUCE_USE_ARM_NEON=1&#10;ARM_MATH_LOOPUNROLL"
+                extraDefs="ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC&#10;JUCE_USE_SIMD=1&#10;JUCE_USE_ARM_NEON=1"
                 extraCompilerFlags="-mcpu=cortex-a53&#10;-mfpu=neon-fp-armv8&#10;-mfloat-abi=hard&#10;-funsafe-math-optimizations&#10;-ftree-vectorize">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug"/>
@@ -120,9 +67,9 @@
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2017 targetFolder="Builds/VisualStudio2017" smallIcon="YyqWd2" bigIcon="YyqWd2"
-            extraCompilerFlags="/w44265 /w45038 /w44062" extraDefs="__CMSIS_GENERIC&#10;ARM_MATH_LOOPUNROLL">
+            extraCompilerFlags="/w44265 /w45038 /w44062" extraDefs="ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="/DSP_Lib/Include&#10;/CMSIS/CM4/CoreSupport"/>
         <CONFIGURATION isDebug="0" name="Release" useRuntimeLibDLL="0"/>
       </CONFIGURATIONS>
       <MODULEPATHS>

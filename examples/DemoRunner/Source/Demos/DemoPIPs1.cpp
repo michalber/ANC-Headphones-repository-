@@ -37,7 +37,7 @@
 #include "../../../Audio/AudioAppDemo.h"
 #include "../../../Audio/AudioLatencyDemo.h"
 #include "../../../Audio/AudioPlaybackDemo.h"
-#include "../../../Audio/AudioRecordingDemo.h"
+//#include "../../../Audio/AudioRecordingDemo.h"
 #include "../../../Audio/AudioSettingsDemo.h"
 #include "../../../Audio/AudioSynthesiserDemo.h"
 #include "../../../Audio/MidiDemo.h"

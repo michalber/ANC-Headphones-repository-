@@ -35,7 +35,7 @@ ifeq ($(CONFIG),Debug)
     TARGET_ARCH := -march=native
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) -DLINUX=1 -DDEBUG=1 -D_DEBUG=1 -DJUCE_DEMO_RUNNER=1 -DJUCE_UNIT_TESTS=0 -DARM_MATH_CM4 -DARM_MATH_MSB_FIRST -D__FPU_PRESENT -D__CMSIS_GENERIC -DARM_MATH_CM8 -DJUCE_USE_SIMD=1 -DJUCE_USE_ARM_NEON=1 -DARM_MATH_LOOPUNROLL -DJUCER_LINUX_MAKE_6D53C8B4=1 -DJUCE_APP_VERSION=0.1.0 -DJUCE_APP_VERSION_HEX=0x100 $(shell pkg-config --cflags alsa x11 xinerama xext freetype2 webkit2gtk-4.0 gtk+-x11-3.0 libcurl) -pthread -I../../JuceLibraryCode -I../../../../modules $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) -DLINUX=1 -DDEBUG=1 -D_DEBUG=1 -DJUCE_DEMO_RUNNER=1 -DJUCE_UNIT_TESTS=0 -DARM_MATH_CM4 -DARM_MATH_MSB_FIRST -D__FPU_PRESENT -D__CMSIS_GENERIC -DJUCE_USE_SIMD=1 -DJUCE_USE_ARM_NEON=1 -DJUCER_LINUX_MAKE_6D53C8B4=1 -DJUCE_APP_VERSION=0.1.0 -DJUCE_APP_VERSION_HEX=0x100 $(shell pkg-config --cflags alsa x11 xinerama xext freetype2 webkit2gtk-4.0 gtk+-x11-3.0 libcurl) -pthread -I../../JuceLibraryCode -I../../../../modules $(CPPFLAGS)
   JUCE_CPPFLAGS_APP := -DJucePlugin_Build_VST=0 -DJucePlugin_Build_VST3=0 -DJucePlugin_Build_AU=0 -DJucePlugin_Build_AUv3=0 -DJucePlugin_Build_RTAS=0 -DJucePlugin_Build_AAX=0 -DJucePlugin_Build_Standalone=0 -DJucePlugin_Build_Unity=0
   JUCE_TARGET_APP := Active\ Noise\ Cancelling
 
@@ -56,7 +56,7 @@ ifeq ($(CONFIG),Release)
     TARGET_ARCH := -march=native
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) -DLINUX=1 -DNDEBUG=1 -DJUCE_DEMO_RUNNER=1 -DJUCE_UNIT_TESTS=0 -DARM_MATH_CM4 -DARM_MATH_MSB_FIRST -D__FPU_PRESENT -D__CMSIS_GENERIC -DARM_MATH_CM8 -DJUCE_USE_SIMD=1 -DJUCE_USE_ARM_NEON=1 -DARM_MATH_LOOPUNROLL -DJUCER_LINUX_MAKE_6D53C8B4=1 -DJUCE_APP_VERSION=0.1.0 -DJUCE_APP_VERSION_HEX=0x100 $(shell pkg-config --cflags alsa x11 xinerama xext freetype2 webkit2gtk-4.0 gtk+-x11-3.0 libcurl) -pthread -I../../JuceLibraryCode -I../../../../modules $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) -DLINUX=1 -DNDEBUG=1 -DJUCE_DEMO_RUNNER=1 -DJUCE_UNIT_TESTS=0 -DARM_MATH_CM4 -DARM_MATH_MSB_FIRST -D__FPU_PRESENT -D__CMSIS_GENERIC -DJUCE_USE_SIMD=1 -DJUCE_USE_ARM_NEON=1 -DJUCER_LINUX_MAKE_6D53C8B4=1 -DJUCE_APP_VERSION=0.1.0 -DJUCE_APP_VERSION_HEX=0x100 $(shell pkg-config --cflags alsa x11 xinerama xext freetype2 webkit2gtk-4.0 gtk+-x11-3.0 libcurl) -pthread -I../../JuceLibraryCode -I../../../../modules $(CPPFLAGS)
   JUCE_CPPFLAGS_APP := -DJucePlugin_Build_VST=0 -DJucePlugin_Build_VST3=0 -DJucePlugin_Build_AU=0 -DJucePlugin_Build_AUv3=0 -DJucePlugin_Build_RTAS=0 -DJucePlugin_Build_AAX=0 -DJucePlugin_Build_Standalone=0 -DJucePlugin_Build_Unity=0
   JUCE_TARGET_APP := Active\ Noise\ Cancelling
 
@@ -68,33 +68,6 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS_APP := \
-  $(JUCE_OBJDIR)/arm_copy_f32_22779d27.o \
-  $(JUCE_OBJDIR)/arm_abs_f32_9127b896.o \
-  $(JUCE_OBJDIR)/arm_add_f32_476c9985.o \
-  $(JUCE_OBJDIR)/arm_dot_prod_f32_c4a464bf.o \
-  $(JUCE_OBJDIR)/arm_mult_f32_7eecc6a2.o \
-  $(JUCE_OBJDIR)/arm_negate_f32_83eb534.o \
-  $(JUCE_OBJDIR)/arm_offset_f32_20a74205.o \
-  $(JUCE_OBJDIR)/arm_scale_f32_4526c12e.o \
-  $(JUCE_OBJDIR)/arm_sub_f32_3063ebe4.o \
-  $(JUCE_OBJDIR)/arm_bitreversal_4424f4b9.o \
-  $(JUCE_OBJDIR)/arm_bitreversal2_4079ab63.o \
-  $(JUCE_OBJDIR)/arm_cfft_f32_d4c4cd23.o \
-  $(JUCE_OBJDIR)/arm_cfft_radix2_f32_d3f33e0.o \
-  $(JUCE_OBJDIR)/arm_cfft_radix2_init_f32_b75ee3e5.o \
-  $(JUCE_OBJDIR)/arm_cfft_radix4_f32_770baa62.o \
-  $(JUCE_OBJDIR)/arm_cfft_radix4_init_f32_c6c22ea3.o \
-  $(JUCE_OBJDIR)/arm_cfft_radix8_f32_4aa49766.o \
-  $(JUCE_OBJDIR)/arm_rfft_f32_25126df4.o \
-  $(JUCE_OBJDIR)/arm_rfft_fast_f32_5116a09d.o \
-  $(JUCE_OBJDIR)/arm_rfft_fast_init_f32_cfcee548.o \
-  $(JUCE_OBJDIR)/arm_rfft_init_f32_a6a0d651.o \
-  $(JUCE_OBJDIR)/arm_common_tables_962488d7.o \
-  $(JUCE_OBJDIR)/arm_const_structs_8391f9c0.o \
-  $(JUCE_OBJDIR)/arm_fir_f32_18bfe273.o \
-  $(JUCE_OBJDIR)/arm_fir_init_f32_c1f35932.o \
-  $(JUCE_OBJDIR)/arm_lms_norm_f32_5d366bfb.o \
-  $(JUCE_OBJDIR)/arm_lms_norm_init_f32_873d84aa.o \
   $(JUCE_OBJDIR)/DemoPIPs1_5b52b434.o \
   $(JUCE_OBJDIR)/DemoPIPs2_5b60cbb5.o \
   $(JUCE_OBJDIR)/JUCEDemos_5a07ba05.o \
@@ -135,141 +108,6 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) : $(OBJECTS_APP) $(RESOURCES)
 	-$(V_AT)mkdir -p $(JUCE_LIBDIR)
 	-$(V_AT)mkdir -p $(JUCE_OUTDIR)
 	$(V_AT)$(CXX) -o $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(OBJECTS_APP) $(JUCE_LDFLAGS) $(JUCE_LDFLAGS_APP) $(RESOURCES) $(TARGET_ARCH)
-
-$(JUCE_OBJDIR)/arm_copy_f32_22779d27.o: ../../Source/arm_copy_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_copy_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_abs_f32_9127b896.o: ../../Source/arm_abs_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_abs_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_add_f32_476c9985.o: ../../Source/arm_add_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_add_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_dot_prod_f32_c4a464bf.o: ../../Source/arm_dot_prod_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_dot_prod_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_mult_f32_7eecc6a2.o: ../../Source/arm_mult_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_mult_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_negate_f32_83eb534.o: ../../Source/arm_negate_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_negate_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_offset_f32_20a74205.o: ../../Source/arm_offset_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_offset_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_scale_f32_4526c12e.o: ../../Source/arm_scale_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_scale_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_sub_f32_3063ebe4.o: ../../Source/arm_sub_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_sub_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_bitreversal_4424f4b9.o: ../../Source/arm_bitreversal.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_bitreversal.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_bitreversal2_4079ab63.o: ../../Source/arm_bitreversal2.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_bitreversal2.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_cfft_f32_d4c4cd23.o: ../../Source/arm_cfft_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_cfft_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_cfft_radix2_f32_d3f33e0.o: ../../Source/arm_cfft_radix2_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_cfft_radix2_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_cfft_radix2_init_f32_b75ee3e5.o: ../../Source/arm_cfft_radix2_init_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_cfft_radix2_init_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_cfft_radix4_f32_770baa62.o: ../../Source/arm_cfft_radix4_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_cfft_radix4_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_cfft_radix4_init_f32_c6c22ea3.o: ../../Source/arm_cfft_radix4_init_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_cfft_radix4_init_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_cfft_radix8_f32_4aa49766.o: ../../Source/arm_cfft_radix8_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_cfft_radix8_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_rfft_f32_25126df4.o: ../../Source/arm_rfft_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_rfft_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_rfft_fast_f32_5116a09d.o: ../../Source/arm_rfft_fast_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_rfft_fast_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_rfft_fast_init_f32_cfcee548.o: ../../Source/arm_rfft_fast_init_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_rfft_fast_init_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_rfft_init_f32_a6a0d651.o: ../../Source/arm_rfft_init_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_rfft_init_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_common_tables_962488d7.o: ../../Source/arm_common_tables.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_common_tables.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_const_structs_8391f9c0.o: ../../Source/arm_const_structs.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_const_structs.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_fir_f32_18bfe273.o: ../../Source/arm_fir_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_fir_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_fir_init_f32_c1f35932.o: ../../Source/arm_fir_init_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_fir_init_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_lms_norm_f32_5d366bfb.o: ../../Source/arm_lms_norm_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_lms_norm_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/arm_lms_norm_init_f32_873d84aa.o: ../../Source/arm_lms_norm_init_f32.c
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling arm_lms_norm_init_f32.c"
-	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/DemoPIPs1_5b52b434.o: ../../Source/Demos/DemoPIPs1.cpp
 	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
