@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT name="Active Noise Cancelling" projectType="guiapp" jucerVersion="5.4.4"
+<JUCERPROJECT name="Active Noise Cancelling" projectType="guiapp" jucerVersion="5.4.3"
               defines="JUCE_DEMO_RUNNER=1&#10;JUCE_UNIT_TESTS=0&#10;ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC"
               bundleIdentifier="com.juce.demorunner" version="0.1.0" id="yj7xMM"
               reportAppUsage="1" maxBinaryFileSize="20971520">

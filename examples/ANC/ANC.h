@@ -489,37 +489,63 @@ public:
 				recordedSampleNum = 0;
 				playingSampleNum = 0;
 #else
-		inBlock	 = dsp::AudioBlock<float>((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
-		outBlock = dsp::AudioBlock<float>((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
-		auto* inout = channelPointers.getData();
-		auto n = inBlock.getNumSamples();
-	
+//		inBlock	 = dsp::AudioBlock<float>((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
+//		outBlock = dsp::AudioBlock<float>((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
+//		auto* inout = channelPointers.getData();
+//		auto n = inBlock.getNumSamples();
+//	
+//		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
+//		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
+//
+//		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
+//			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
+//		
+//		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+//		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
+//				
+//		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));		
+//		
+//		notify();
+//
+////		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+//
+//		for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
+//			inout[ch] = outBlock.getChannelPointer(ch);
+//			
+//		AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
+//			const_cast<float**> (inout),
+//			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
+//
+//		FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
+//
+//		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
+//		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
+
+
+
+//=========================================================================================================================================================
 		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
 		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
 
-		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
-			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
-		
-		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-				
-		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));		
-		
-		notify();
+		arm_lms_norm_f32(
+			&lmsNorm_instance,			/* LMSNorm instance */
+			(float*)inputChannelData[0],							/* Input signal */
+			(float*)inputChannelData[0],							/* Reference Signal */
+			outputChannelData[0],						/* Converged Signal */
+			errOutput,					/* Error Signal, this will become small as the signal converges */
+			numSamples);				/* BlockSize */
 
-//		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
+#if JUCE_USE_SIMD
+//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+		memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+#else
+		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+#endif
+		FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);
+		FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
+//=========================================================================================================================================================
 
-		for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
-			inout[ch] = outBlock.getChannelPointer(ch);
-			
-		AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-			const_cast<float**> (inout),
-			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
 
-		FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
-
-		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
-		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
 
 #endif
 //		auto end = std::chrono::high_resolution_clock::now();
