@@ -396,7 +396,7 @@ inline void arm_lms_norm_f32(
 		}
 
 		/* The result in the accumulator, store in the destination buffer. */
-		*pOut++ = -sum;
+		*pOut++ = sum;
 
 		/* Compute and store error */
 		d = (float)(*pRef++);
@@ -559,3 +559,159 @@ float arm_snr_f32(float *pRef, float *pTest, uint32_t buffSize)
 	return (SNR);
 
 }
+
+
+
+
+
+
+
+
+
+
+
+#include <array>
+#include <limits>
+#include <vector>
+#include <fstream>
+#include <assert.h>
+#include "constants.h"
+
+
+template<int filter_length>
+class FIRFilter {
+public:
+	typedef std::array<float, filter_length> samples_array;
+	typedef std::array<float, filter_length> filter_coeffs_array;
+
+	FIRFilter() : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{filter_length} {}
+
+	FIRFilter(int _filterSize) : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{ _filterSize } {}
+
+	FIRFilter(int _filterSize, filter_coeffs_array coefficients) : _filter_coefficients(coefficients), filterSize{ _filterSize },
+		_samples_buffer{ 0.0 } {}
+
+	FIRFilter(filter_coeffs_array coefficients) : _filter_coefficients(coefficients),
+		_samples_buffer{ 0.0 } {}
+
+	float fir_step(float new_sample) {
+		float new_val = 0;
+		// Shift sample_buffer (FIFO style)
+		for (long unsigned int i = filterSize - 1; i >= 1; --i) {
+			_samples_buffer[i] = _samples_buffer[i - 1];
+		}
+		_samples_buffer[0] = new_sample;
+		// Multiply and accumulate
+		for (long unsigned int i = 0; i < filterSize; ++i) {
+			new_val += _samples_buffer[i] * _filter_coefficients[i];
+		}
+		return new_val;
+	}
+
+	filter_coeffs_array get_coefficients() {
+		return _filter_coefficients;
+	}
+
+	void set_coefficients(filter_coeffs_array new_coefficients) {
+		_filter_coefficients = new_coefficients;
+	}
+
+	void reset_sample_buffer() {
+		_samples_buffer = { 0 };
+	}
+
+private:
+	int filterSize;
+	filter_coeffs_array _filter_coefficients;
+	samples_array _samples_buffer;
+};
+
+
+
+
+void dc_removal(float *samples_bufferE, float *samples_bufferR, float *out1, float *out2, long unsigned int buffer_length) {
+	static float last_error_sample = 0.0f;
+	static float last_ref_sample = 0.0f;
+
+	static FIRFilter<ANTYALIAS_FILTER_LENGTH> aa_filter_error(ANTYALIAS_FILTER_COEFFS);
+	static FIRFilter<ANTYALIAS_FILTER_LENGTH> aa_filter_ref(ANTYALIAS_FILTER_COEFFS);
+
+	for (unsigned long i = 1; i < buffer_length; i ++) {
+		float error_sample = samples_bufferE[i];
+		float reference_sample = samples_bufferR[i - 1];
+		// error samples filtering
+		float new_err = error_sample + DC_REMOVAL_ALPHA * last_error_sample;
+		float out_err = new_err - last_error_sample;
+		last_error_sample = new_err;
+		out_err = aa_filter_error.fir_step(out_err);
+		out1[i] = out_err;
+		// reference samples filtering
+		float new_ref = reference_sample + DC_REMOVAL_ALPHA * last_ref_sample;
+		float out_ref = new_ref - last_ref_sample;
+		last_ref_sample = out_ref;
+		out_ref = aa_filter_ref.fir_step(out_ref);
+		out2[i - 1] = out_ref;
+	}
+}
+
+template<int filter_length>
+class NLMSFilter {
+public:
+
+	typedef std::array<float, filter_length> samples_array;
+	typedef std::array<float, filter_length> filter_coeffs_array;
+	FIRFilter<filter_length> fir_filter;
+
+	NLMSFilter() : mu{ 0.5 }, _nlms_coefficients{ {0} }, _samples_buffer{ {0} }, filterSize{ filter_length } 
+	{
+		fir_filter = FIRFilter<filter_length>(filterSize);
+		fir_filter.set_coefficients(_nlms_coefficients);
+	}
+
+	NLMSFilter(float mu, int filterSize) : mu{ mu }, _nlms_coefficients{ {0} }, _samples_buffer{ {0} }, filterSize(filterSize)
+	{
+		fir_filter = FIRFilter<filter_length>(filterSize);
+		fir_filter.set_coefficients(_nlms_coefficients);
+	}
+
+	NLMSFilter(float mu, filter_coeffs_array initial_filter) : mu{ mu }, filterSize(filter_length)		
+		_nlms_coefficients{0.0}, _samples_buffer{ {0.0} } 
+	{
+		fir_filter = FIRFilter<filter_length>(filterSize);
+		fir_filter.set_coefficients(initial_filter);
+	}
+
+	void nlms_step(float *x_reference_sample, float *error_sample, float *outputBuffer, int blockSize) {
+		for (int j = 0; j < blockSize; j++)
+		{
+			// Shift samples buffer
+			for (long int i = filterSize - 1; i >= 1; --i) {
+				_samples_buffer[i] = _samples_buffer[i - 1];
+			}
+			_samples_buffer[0] = x_reference_sample[j];
+			energy -= x0 * x0;
+			energy += x_reference_sample[j] * x_reference_sample[j];
+			// Update filter coefficients			
+			nlms_filter_update((mu) *(error_sample[j]));
+			x0 = _samples_buffer.at(filterSize - 1);
+			// Perform filtering step, to generate new y correction sample
+			*(outputBuffer++) = fir_filter.fir_step(x_reference_sample[j]);
+		}
+	}
+
+	void nlms_filter_update(float update_step) {
+		filter_coeffs_array filter_coeffs = fir_filter.get_coefficients();
+		for (int i = 0; i < filterSize; ++i) {
+			filter_coeffs.at(i) += _samples_buffer.at(i) * update_step / (energy + 0.000000119209289f);
+		}
+		fir_filter.set_coefficients(filter_coeffs);
+	}
+
+private:
+	float mu;         /**< step size that control filter coefficient updates. */
+	int filterSize;
+	float energy;     /**< saves previous frame energy. */
+	float x0;         /**< saves previous input sample. */
+	filter_coeffs_array _nlms_coefficients;
+	samples_array _samples_buffer;
+};

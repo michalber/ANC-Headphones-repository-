@@ -38,6 +38,7 @@
 #include "../DemoRunner/Source/config.h"
 
 #include <future>
+#include <omp.h>
 
 //==============================================================================
 /** A simple class that acts as an AudioIODeviceCallback and writes the
@@ -126,6 +127,8 @@ public:
 		float** outputChannelData, int numOutputChannels,
 		int numSamples) override
 	{
+		(void)numOutputChannels;
+		(void)outputChannelData;
 		const ScopedLock sl(writerLock);
 
 		if (activeWriter.load() != nullptr && numInputChannels >= thumbnail.getNumChannels())
@@ -391,6 +394,8 @@ public:
 	 ******************************************************************************/
     void audioDeviceAboutToStart (AudioIODevice* device) override
     {
+		omp_set_num_threads(3);
+
 		numOfSamples = device->getCurrentBufferSizeSamples();
         testIsRunning = false;
         playingSampleNum = recordedSampleNum = 0;
@@ -426,8 +431,11 @@ public:
 
 		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 14000.0f, 20);
 		stereoIIR.prepare(spec);
+
+		monoIIR.setCoefficients((IIRCoefficients::makeLowPass(sampleRate, 2000, 0.7)));
+
 #endif
-		startThread();
+		//startThread();
     }
 	/***************************************************************************//**
 	 * @brief Overriden function to clean audio device parameters after it stops
@@ -438,6 +446,7 @@ public:
 	 ******************************************************************************/
     void audioDeviceStopped() override 
 	{
+		sampleRate = 0;
 	}
 	/***************************************************************************//**
 	 * @brief Callback of IO Audio Device
@@ -453,41 +462,44 @@ public:
 	void audioDeviceIOCallback(const float** inputChannelData, int numInputChannels,
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
+		(void)numInputChannels;
+		(void)numOutputChannels;
+
 		const ScopedLock sl(lock);
-//		auto start = std::chrono::high_resolution_clock::now();
+		//		auto start = std::chrono::high_resolution_clock::now();
 #if !JUCE_USE_SIMD
 
-				auto* playBufferL = outData.getReadPointer(0);
-				auto* playBufferR = outData.getReadPointer(1);
-				auto* recBufferL = inData.getWritePointer(0);
-				auto* recBufferR = inData.getWritePointer(1);
-		
-				for (int i = 0; i < numSamples; ++i)
-				{
-					if (recordedSampleNum < inData.getNumSamples()) {
-						//				for (int j = 0; j < numInputChannels; j++) {
-						//					outputChannelData[j][i] = inputChannelData[j][i];					
-						//				}
-						recBufferL[recordedSampleNum] = inputChannelData[0][i];
-						recBufferR[recordedSampleNum] = inputChannelData[1][i];
-					}
-					++recordedSampleNum;			
-		
-					auto outputSampleL = (playingSampleNum <= outData.getNumSamples()) ? playBufferL[playingSampleNum] : 0.0f;
-					auto outputSampleR = (playingSampleNum <= outData.getNumSamples()) ? playBufferR[playingSampleNum] : 0.0f;
-		
-					outputChannelData[0][i] = (volume) * (filter.processSample(inputChannelData[0][i]));
-					outputChannelData[1][i] = (volume) * (filter.processSample(inputChannelData[1][i]));
-		
-//					outputChannelData[0][i] = inputChannelData[0][i];
-//					outputChannelData[1][i] = inputChannelData[1][i];
-		
-					++playingSampleNum;
-				}		
-				notify();
-		
-				recordedSampleNum = 0;
-				playingSampleNum = 0;
+		auto* playBufferL = outData.getReadPointer(0);
+		auto* playBufferR = outData.getReadPointer(1);
+		auto* recBufferL = inData.getWritePointer(0);
+		auto* recBufferR = inData.getWritePointer(1);
+
+		for (int i = 0; i < numSamples; ++i)
+		{
+			if (recordedSampleNum < inData.getNumSamples()) {
+				//				for (int j = 0; j < numInputChannels; j++) {
+				//					outputChannelData[j][i] = inputChannelData[j][i];					
+				//				}
+				recBufferL[recordedSampleNum] = inputChannelData[0][i];
+				recBufferR[recordedSampleNum] = inputChannelData[1][i];
+			}
+			++recordedSampleNum;
+
+			auto outputSampleL = (playingSampleNum <= outData.getNumSamples()) ? playBufferL[playingSampleNum] : 0.0f;
+			auto outputSampleR = (playingSampleNum <= outData.getNumSamples()) ? playBufferR[playingSampleNum] : 0.0f;
+
+			outputChannelData[0][i] = (volume) * (filter.processSample(inputChannelData[0][i]));
+			outputChannelData[1][i] = (volume) * (filter.processSample(inputChannelData[1][i]));
+
+			//					outputChannelData[0][i] = inputChannelData[0][i];
+			//					outputChannelData[1][i] = inputChannelData[1][i];
+
+			++playingSampleNum;
+		}
+		notify();
+
+		recordedSampleNum = 0;
+		playingSampleNum = 0;
 #else
 //		inBlock	 = dsp::AudioBlock<float>((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
 //		outBlock = dsp::AudioBlock<float>((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
@@ -523,34 +535,52 @@ public:
 
 
 
-//=========================================================================================================================================================
-		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
-		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
+//=========================================================================================================================================================		
+#pragma omp parallel sections
+		{
+#pragma omp section
+			{
+				pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
+				pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
 
-		arm_lms_norm_f32(
-			&lmsNorm_instance,			/* LMSNorm instance */
-			(float*)inputChannelData[0],							/* Input signal */
-			(float*)inputChannelData[0],							/* Reference Signal */
-			outputChannelData[0],						/* Converged Signal */
-			errOutput,					/* Error Signal, this will become small as the signal converges */
-			numSamples);				/* BlockSize */
+				//nlmsFilter.nlms_step((float*)inputChannelData[1], (float*)inputChannelData[0], outputChannelData[0], numSamples);
+#pragma omp section
+				{
+					monoIIR.processSamples((float*)inputChannelData[0], numSamples);
+					monoIIR.processSamples((float*)inputChannelData[1], numSamples);
+				}
+#pragma omp section
+				{
+					arm_lms_norm_anc(
+						&lmsNorm_instance,			/* LMSNorm instance */
+						(float*)inputChannelData[1],							/* Input signal */
+						(float*)inputChannelData[0],							/* Error Signal */
+						outputChannelData[0],						/* Converged Signal */
+						errOutput,					/* Error Signal, this will become small as the signal converges */
+						numSamples);				/* BlockSize */
 
 #if JUCE_USE_SIMD
 //		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
-		memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+					memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 #else
-		memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+					memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 #endif
-		FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);
-		FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
-//=========================================================================================================================================================
-
-
-
+				}
+#pragma omp section
+				{
+					FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);
+					monoIIR.processSamples(outputChannelData[0], numSamples);
+					FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
+				}
+			}
+		}
+		//=========================================================================================================================================================
 #endif
 //		auto end = std::chrono::high_resolution_clock::now();
 //		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 	}
+	
+	
 	/***************************************************************************//**
 	 * @brief Function to process new pack of input data 
 	 * @author Michał Berdzik
@@ -591,15 +621,17 @@ private:
     double sampleRate     = 0.0;
     bool testIsRunning    = false;
     int deviceInputLatency, deviceOutputLatency, numOfSamples;
-	float volume = 1;
+	float volume = 1.0f;
 
 	arm_lms_norm_instance_f32 lmsNorm_instance;
-	float y[FRAMES_PER_BUFFER] = { 0 };								// Output data
-	float e[FRAMES_PER_BUFFER] = { 0 };								// Error data
-	float Out[FRAMES_PER_BUFFER] = { 0 };							// Output data
-	float errOutput[FRAMES_PER_BUFFER] = { 0 };						// Error data
-	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.1 };	// Array for NLMS algorithm
-	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.1 };					// NLMS Coefficients
+	float y[FRAMES_PER_BUFFER] = { 0.0f };								// Output data
+	float e[FRAMES_PER_BUFFER] = { 0.0f };								// Error data
+	float Out[FRAMES_PER_BUFFER] = { 0.0f };							// Output data
+	float errOutput[FRAMES_PER_BUFFER] = { 0.0f };						// Error data
+	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.0f };	// Array for NLMS algorithm
+	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
+
+	NLMSFilter<NUM_OF_TAPS> nlmsFilter;
 	
 	float fifo_L[88200];
 	int fifoIndex_L = 0;
@@ -618,6 +650,7 @@ private:
 	HeapBlock<const float*> channelPointers{ dsp::SIMDRegister<float>::size() };
 	dsp::ProcessorDuplicator<dsp::FIR::Filter<dsp::SIMDRegister<float>>, dsp::FIR::Coefficients<float>> stereoFIR;
 	dsp::ProcessorDuplicator<dsp::IIR::Filter<dsp::SIMDRegister<float>>, dsp::IIR::Coefficients<float>> stereoIIR;
+	IIRFilter monoIIR;
 #else
 	AudioBuffer<float> inData, outData;
 	dsp::FIR::Coefficients<float> coeffs;
@@ -642,7 +675,7 @@ public:
 	 ******************************************************************************/
 	ActiveNoiseCancelling()
     {
-        setOpaque (true);
+        setOpaque (true);		
 		
 		startTimerHz(3);
 
@@ -665,7 +698,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterSizeSlider.setRange(256.0, 4096.0, 128.0);
 		filterSizeSlider.addListener(this);
-		filterSizeSlider.setValue(256);
+		filterSizeSlider.setValue(512);
 		filterSizeSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 
 		// Set up Filter size Label text box 
@@ -676,7 +709,7 @@ public:
 		// Set up Filter Size Slider box 
 		filterMUSlider.setRange(0.00001, 1.0, 0.00001);
 		filterMUSlider.addListener(this);
-		filterMUSlider.setValue(0.68584);
+		filterMUSlider.setValue(0.25);
 		filterMUSlider.setTextBoxStyle(Slider::TextBoxLeft, false, 120, volumeSlider.getTextBoxHeight());
 		
 		// Set up FFT Scale Slider box
@@ -788,9 +821,10 @@ public:
     ~ActiveNoiseCancelling()
     {
 		audioDeviceManager.removeAudioCallback(&recorder);
-        audioDeviceManager.removeAudioCallback (liveAudioScroller.get());
-        audioDeviceManager.removeAudioCallback (ANC.get());
+        audioDeviceManager.removeAudioCallback (liveAudioScroller.get());        
 		audioDeviceManager.removeAudioCallback(spectrumAnalyser.get());
+		audioDeviceManager.removeAudioCallback(ANC.get());
+
 		ANC.reset();
         liveAudioScroller.reset();
 		spectrumAnalyser.reset();		

@@ -103,6 +103,11 @@ public:
 		float** outputChannelData, int numOutputChannels,
 		int numberOfSamples) override
 	{
+		(void)numOutputChannels;
+		(void)numInputChannels;
+		(void)outputChannelData;
+
+
 //		const ScopedLock sl(lock);
 
 		for (int i = 0; i < numberOfSamples; ++i)

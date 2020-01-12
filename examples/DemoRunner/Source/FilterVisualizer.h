@@ -112,7 +112,7 @@ public:
         
         // db labels
         float dyn = s.dbMax - s.dbMin;
-        int numgridlines = dyn/s.gridDiv+1;
+        int numgridlines = (int)(dyn/s.gridDiv+1);
         
 		//* Draw text labels
         //g.setFont(Font(getLookAndFeel().getTypefaceForFont (Font(10.0f, 1)));
@@ -125,7 +125,7 @@ public:
             int ypos = dbToY(db_val);
             
             String axislabel = String((int)db_val);
-            g.drawText (axislabel, 0, ypos-6, 18, 12.0f, Justification::right, false);
+            g.drawText (axislabel, 0, ypos-6, 18, 12, Justification::right, false);
         }
 
 		//* Draw frequncy labels        
@@ -149,7 +149,7 @@ public:
             
             if (drawText)
             {
-                g.drawText (axislabel, xpos - 10, dbToY(s.dbMin) + OH + 0.0f, 20, 12, Justification::centred, false);
+                g.drawText (axislabel, xpos - 10, dbToY(s.dbMin) + OH + 0, 20, 12, Justification::centred, false);
             }
         }
 
@@ -206,7 +206,7 @@ public:
             
             for (int i = 1; i < numPixels; ++i)
             {
-                float db = Decibels::gainToDecibels(magnitudes[i]) + additiveDB;
+                db = Decibels::gainToDecibels(magnitudes[i]) + additiveDB;
                 float y = jlimit((float) yMin, (float) yMax + OH + 1, dbToYFloat(db));
                 float x = xMin + i;
                 magnitude.lineTo(x, y);
