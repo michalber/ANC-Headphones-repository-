@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <chrono>
-
+#include <omp.h>
 
 /**
   * @brief Instance structure for the floating-point normalized LMS filter.
@@ -44,6 +44,14 @@ inline void arm_lms_norm_f32(
 	arm_lms_norm_instance_f32 * S,
 	float * pSrc,
 	float * pRef,
+	float * pOut,
+	float * pErr,
+	int blockSize);
+
+inline void arm_lms_norm_anc(
+	arm_lms_norm_instance_f32 * S,
+	float * pSrc,
+	float * pErrIn,
 	float * pOut,
 	float * pErr,
 	int blockSize);
@@ -501,7 +509,192 @@ inline void arm_lms_norm_f32(
    * @} end of LMS_NORM group
    */
 
+inline void arm_lms_norm_anc(
+	arm_lms_norm_instance_f32 * S,
+	float * pSrc,
+	float * pErrIn,
+	float * pOut,
+	float * pErr,
+	int blockSize)
+{
+	float *pState = S->pState;                 /* State pointer */
+	float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
+	float *pStateCurnt;                        /* Points to the current sample of the state */
+	float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
+	float mu = S->mu;                          /* Adaptive factor */
+	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
+	int tapCnt, blkCnt;                       /* Loop counters */
+	float energy;                              /* Energy of the input */
+	float sum, e;                           /* accumulator, error, reference data sample */
+	float w, x0, in;                           /* weight factor, temporary variable to hold input sample and state */
 
+	/* Initializations of error,  difference, Coefficient update */
+	e = 0.0f;
+	w = 0.0f;
+
+	energy = S->energy;
+	x0 = S->x0;
+
+	/* S->pState points to buffer which contains previous frame (numTaps - 1) samples */
+	/* pStateCurnt points to the location where the new input data should be written */
+	pStateCurnt = &(S->pState[(numTaps - 1u)]);
+
+	blkCnt = blockSize;
+
+#pragma omp simd
+	while (blkCnt > 0u)
+	{
+		/* Copy the new input sample into the state buffer */
+		*pStateCurnt++ = *pSrc;
+
+		/* Initialize pState pointer */
+		px = pState;
+
+		/* Initialize coeff pointer */
+		pb = (pCoeffs);
+
+		/* Read the sample from input buffer */
+		in = *pSrc++;
+
+		/* Update the energy calculation */
+		energy -= x0 * x0;
+		energy += in * in;
+
+		/* Set the accumulator to zero */
+		sum = 0.0f;
+
+		/* Loop unrolling.  Process 4 taps at a time. */
+		tapCnt = numTaps >> 2;
+
+#pragma omp simd
+		while (tapCnt > 0u)
+		{
+			/* Perform the multiply-accumulate */
+			sum += (*px++) * (*pb++);
+			sum += (*px++) * (*pb++);
+			sum += (*px++) * (*pb++);
+			sum += (*px++) * (*pb++);
+
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+
+		/* If the filter length is not a multiple of 4, compute the remaining filter taps */
+		tapCnt = numTaps % 0x4u;
+
+		while (tapCnt > 0u)
+		{
+			/* Perform the multiply-accumulate */
+			sum += (*px++) * (*pb++);
+
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+
+		/* The result in the accumulator, store in the destination buffer. */
+		*pOut++ = sum;
+
+		/* Compute and store error */
+		e = (float)(*pErrIn++);		
+		*pErr++ = e;
+
+		/* Calculation of Weighting factor for updating filter coefficients */
+		/* epsilon value 0.000000119209289f */
+		w = (e * mu) / (energy + 0.000000119209289f);
+
+		/* Initialize pState pointer */
+		px = pState;
+
+		/* Initialize coeff pointer */
+		pb = (pCoeffs);
+
+		/* Loop unrolling.  Process 4 taps at a time. */
+		tapCnt = numTaps >> 2;
+
+		/* Update filter coefficients */
+
+#pragma omp simd
+		while (tapCnt > 0u)
+		{
+			/* Perform the multiply-accumulate */
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+
+		/* If the filter length is not a multiple of 4, compute the remaining filter taps */
+		tapCnt = numTaps % 0x4u;
+
+		while (tapCnt > 0u)
+		{
+			/* Perform the multiply-accumulate */
+			*pb += w * (*px++);
+			pb++;
+
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+
+		x0 = *pState;
+
+		/* Advance state pointer by 1 for the next sample */
+		pState = pState + 1;
+
+		/* Decrement the loop counter */
+		blkCnt--;
+	}
+
+	S->energy = energy;
+	S->x0 = x0;
+
+	/* Processing is complete. Now copy the last numTaps - 1 samples to the
+	   satrt of the state buffer. This prepares the state buffer for the
+	   next function call. */
+
+	   /* Points to the start of the pState buffer */
+	pStateCurnt = S->pState;
+
+	/* Loop unrolling for (numTaps - 1u)/4 samples copy */
+	tapCnt = (numTaps - 1u) >> 2u;
+
+	/* copy data */
+	
+#pragma omp simd
+	while (tapCnt > 0u)
+	{
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+
+		/* Decrement the loop counter */
+		tapCnt--;
+	}
+
+	/* Calculate remaining number of copies */
+	tapCnt = (numTaps - 1u) % 0x4u;
+
+	/* Copy the remaining q31_t data */
+	while (tapCnt > 0u)
+	{
+		*pStateCurnt++ = *pState++;
+
+		/* Decrement the loop counter */
+		tapCnt--;
+	}
+}
 
    /**
 	* @brief  Caluclation of SNR
