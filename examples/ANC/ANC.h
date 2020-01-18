@@ -304,10 +304,16 @@ public:
 				{
 					//pthread_mutex_lock( &count_mutex );
 					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, bufferPtr_L, availableSamples_L);
-					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, bufferPtr_R, availableSamples_R);
+					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, bufferPtr_R, availableSamples_L);
 					//do processing here
 
-					arm_lms_norm_anc(
+					//monoIIRHP.processSamples((float*)bufferPtr_L, readedSamples_L);
+					//monoIIRHP.processSamples((float*)bufferPtr_R, readedSamples_R);
+
+//					monoIIR.processSamples((float*)bufferPtr_L, readedSamples_L);
+//					monoIIR.processSamples((float*)bufferPtr_R, readedSamples_L);
+					
+					arm_lms_norm_f32(
 						&lmsNorm_instance,			/* LMSNorm instance */
 						(float*)bufferPtr_R,							/* Input signal */
 						(float*)bufferPtr_L,							/* Reference-Error Signal */
@@ -322,9 +328,11 @@ public:
 					//	readedSamples_L
 					//);
 					
+//					monoIIR.processSamples((float*)bufferPtr, readedSamples_L);
+
 #pragma omp section
 					{
-						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, bufferPtr_L, readedSamples_L);
+						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, bufferPtr, readedSamples_L);
 						//pthread_mutex_unlock( &count_mutex );
 					}
 				}
@@ -499,6 +507,7 @@ public:
 		stereoIIR.prepare(spec);
 
 		monoIIR.setCoefficients((IIRCoefficients::makeLowPass(sampleRate, 2000, 0.7)));
+		monoIIRHP.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, 30, 0.7));
 
 		NLMSFilter = Adaptive::NLMS(filterSize, muValue, 0.00000001);
 
@@ -660,20 +669,17 @@ public:
 #pragma omp parallel sections
 		{
 
-#pragma omp section
-			{
+
 				const float *rptr_L = (const float *)inputChannelData[0];
 				ring_buffer_size_t elementsWriteable_L = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_L);
 				ring_buffer_size_t elementsToWrite_L = rbs_min(elementsWriteable_L, (ring_buffer_size_t)(numSamples));
 				PaUtil_WriteRingBuffer(&ringBufferIn_L, rptr_L, elementsToWrite_L);
-			}
-#pragma omp section
-			{
+
 				const float *rptr_R = (const float *)inputChannelData[1];
 				ring_buffer_size_t elementsWriteable_R = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_R);
 				ring_buffer_size_t elementsToWrite_R = rbs_min(elementsWriteable_R, (ring_buffer_size_t)(numSamples));
 				PaUtil_WriteRingBuffer(&ringBufferIn_R, rptr_R, elementsToWrite_R);
-			}
+			
 #pragma omp section
 			{
 				float *wptr = (float *)outputChannelData[0];
@@ -684,12 +690,9 @@ public:
 			if (readedSamples < numOfSamples)
 			{
 #pragma omp parallel for shedule(static, 4)
-				for (int i = readedSamples; i < numOfSamples; i += 4)
+				for (int i = readedSamples; i < numOfSamples; i ++)
 				{
 					outputChannelData[0][i] = 0;
-					outputChannelData[0][i + 1] = 0;
-					outputChannelData[0][i + 2] = 0;
-					outputChannelData[0][i + 3] = 0;
 				}
 			}
 		}
@@ -834,6 +837,7 @@ private:
 	dsp::ProcessorDuplicator<dsp::FIR::Filter<dsp::SIMDRegister<float>>, dsp::FIR::Coefficients<float>> stereoFIR;
 	dsp::ProcessorDuplicator<dsp::IIR::Filter<dsp::SIMDRegister<float>>, dsp::IIR::Coefficients<float>> stereoIIR;
 	IIRFilter monoIIR;
+	IIRFilter monoIIRHP;
 #else
 	AudioBuffer<float> inData, outData;
 	dsp::FIR::Coefficients<float> coeffs;

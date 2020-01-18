@@ -460,7 +460,7 @@ inline void arm_lms_norm_f32(
 		}
 
 		/* The result in the accumulator, store in the destination buffer. */
-		*pOut++ = sum;
+		*pOut++ = -sum;
 
 		/* Compute and store error */
 		d = (float)(*pRef++);
