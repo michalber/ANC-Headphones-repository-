@@ -36,9 +36,11 @@
 
 #include "../DemoRunner/Source/ARM_NLMS.h"
 #include "../DemoRunner/Source/config.h"
+#include "../DemoRunner/Source/pa_ringbuffer.h"
 
 #include <future>
 #include <omp.h>
+#include <string.h>
 
 //==============================================================================
 /** A simple class that acts as an AudioIODeviceCallback and writes the
@@ -263,18 +265,70 @@ public:
  ******************************************************************************/
 	void run() override 
 	{
+		static ring_buffer_size_t availableSamples_L = 0;
+		static ring_buffer_size_t readedSamples_L = 0;
+		static ring_buffer_size_t availableSamples_R = 0;
+		static ring_buffer_size_t readedSamples_R = 0;
+		static ring_buffer_size_t processedSamples = 0;
+		volatile float buffer_L[FRAMES_PER_BUFFER * 4];
+		float *bufferPtr_L = (float *)buffer_L;
+
+		volatile float buffer_R[FRAMES_PER_BUFFER * 4];
+		float *bufferPtr_R = (float *)buffer_R;
+
+		volatile float buffer[FRAMES_PER_BUFFER * 4];
+		float *bufferPtr = (float *)buffer;
+
+
 		while (!threadShouldExit())
 		{
-			wait(-1);
-//			auto start = std::chrono::high_resolution_clock::now();
-#if JUCE_USE_SIMD
-			processSamples((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0));
-#else
-			processSamples((float*)inData.getReadPointer(1), (float*)inData.getReadPointer(0));
-#endif
-//			SNR = arm_snr_f32((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0), numOfSamples);
-//			auto end = std::chrono::high_resolution_clock::now();
-//			auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();			
+			//			wait(-1);
+			////			auto start = std::chrono::high_resolution_clock::now();
+			//#if JUCE_USE_SIMD
+			//			processSamples((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0));
+			//#else
+			//			processSamples((float*)inData.getReadPointer(1), (float*)inData.getReadPointer(0));
+			//#endif
+			////			SNR = arm_snr_f32((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0), numOfSamples);
+			////			auto end = std::chrono::high_resolution_clock::now();
+			////			auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();	
+
+
+#pragma omp parallel sections
+			{
+#pragma omp section
+				{
+					availableSamples_L = PaUtil_GetRingBufferReadAvailable(&ringBufferIn_L);
+				}
+				if (availableSamples_L > 0)
+				{
+					//pthread_mutex_lock( &count_mutex );
+					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, bufferPtr_L, availableSamples_L);
+					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, bufferPtr_R, availableSamples_R);
+					//do processing here
+
+					arm_lms_norm_anc(
+						&lmsNorm_instance,			/* LMSNorm instance */
+						(float*)bufferPtr_R,							/* Input signal */
+						(float*)bufferPtr_L,							/* Reference-Error Signal */
+						bufferPtr,						/* Converged Signal */
+						errOutput,					/* Error Signal, this will become small as the signal converges */
+						readedSamples_L);				/* BlockSize */
+
+					//NLMSFilter.processNLMS(
+					//	(float*)bufferPtr_R,
+					//	(float*)bufferPtr_L,
+					//	bufferPtr,
+					//	readedSamples_L
+					//);
+					
+#pragma omp section
+					{
+						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, bufferPtr_L, readedSamples_L);
+						//pthread_mutex_unlock( &count_mutex );
+					}
+				}
+			}
 		}
 	}
 
@@ -392,6 +446,17 @@ public:
 	 * @param Pointer to IO Audio Device
 	 * @return
 	 ******************************************************************************/
+	static unsigned NextPowerOf2(unsigned val)
+	{
+		val--;
+		val = (val >> 1) | val;
+		val = (val >> 2) | val;
+		val = (val >> 4) | val;
+		val = (val >> 8) | val;
+		val = (val >> 16) | val;
+		return ++val;
+	}
+
     void audioDeviceAboutToStart (AudioIODevice* device) override
     {
 		omp_set_num_threads(3);
@@ -425,6 +490,7 @@ public:
 		spec.sampleRate = sampleRate;		
 
 		arm_lms_norm_init_f32(&lmsNorm_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
+		arm_lms_init_f32(&lms_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
 
 		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		stereoFIR.prepare(spec);
@@ -434,8 +500,50 @@ public:
 
 		monoIIR.setCoefficients((IIRCoefficients::makeLowPass(sampleRate, 2000, 0.7)));
 
+		NLMSFilter = Adaptive::NLMS(filterSize, muValue, 0.00000001);
+
+
+
+		int numSamples = NextPowerOf2((unsigned)(SAMPLE_RATE * 0.5 * NR_OF_CHANNELS));
+		int numBytes = numSamples * sizeof(float);		
+		ringBufferDataIn_L = (float *)malloc(numBytes);
+		printf("Creating ringBuffIn array \n");
+		if (ringBufferDataIn_L == NULL)
+		{
+			printf("Could not allocate input ring buffer data.\n");
+		}
+		printf("Initializing ringBuffIn\n");
+		if (PaUtil_InitializeRingBuffer(&ringBufferIn_L, sizeof(float), numSamples, ringBufferDataIn_L) < 0)
+		{
+			printf("Failed to initialize input ring buffer. Size is not power of 2 ??\n");
+		}
+
+		ringBufferDataIn_R = (float *)malloc(numBytes);
+		printf("Creating ringBuffIn array \n");
+		if (ringBufferDataIn_R == NULL)
+		{
+			printf("Could not allocate input ring buffer data.\n");
+		}
+		printf("Initializing ringBuffIn\n");
+		if (PaUtil_InitializeRingBuffer(&ringBufferIn_R, sizeof(float), numSamples, ringBufferDataIn_R) < 0)
+		{
+			printf("Failed to initialize input ring buffer. Size is not power of 2 ??\n");
+		}
+
+		printf("Creating ringBuffOut array \n");
+		ringBufferDataOut = (float *)malloc(numBytes);
+		if (ringBufferDataOut == NULL)
+		{
+			printf("Could not allocate output ring buffer data.\n");
+		}
+		printf("Initializing ringBuffOut\n");
+		if (PaUtil_InitializeRingBuffer(&ringBufferOut, sizeof(float), numSamples, ringBufferDataOut) < 0)
+		{
+			printf("Failed to initialize output ring buffer. Size is not power of 2 ??\n");
+		}
+
 #endif
-		//startThread();
+		startThread();
     }
 	/***************************************************************************//**
 	 * @brief Overriden function to clean audio device parameters after it stops
@@ -459,9 +567,22 @@ public:
 	 * @param Number of samples
 	 * @return
 	 ******************************************************************************/
+
+	static inline ring_buffer_size_t rbs_min(ring_buffer_size_t a, ring_buffer_size_t b)
+	{
+		return (a < b) ? a : b;
+	}
+
 	void audioDeviceIOCallback(const float** inputChannelData, int numInputChannels,
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
+		static ring_buffer_size_t availableSamples = 0;
+		static ring_buffer_size_t readedSamples = 0;
+		static ring_buffer_size_t processedSamples = 0;
+		volatile float buffer[FRAMES_PER_BUFFER * 4];
+		float *bufferPtr = (float *)buffer;
+
+
 		(void)numInputChannels;
 		(void)numOutputChannels;
 
@@ -535,49 +656,102 @@ public:
 
 
 
-//=========================================================================================================================================================		
+//=========================================================================================================================================================	
 #pragma omp parallel sections
+		{
+
+#pragma omp section
+			{
+				const float *rptr_L = (const float *)inputChannelData[0];
+				ring_buffer_size_t elementsWriteable_L = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_L);
+				ring_buffer_size_t elementsToWrite_L = rbs_min(elementsWriteable_L, (ring_buffer_size_t)(numSamples));
+				PaUtil_WriteRingBuffer(&ringBufferIn_L, rptr_L, elementsToWrite_L);
+			}
+#pragma omp section
+			{
+				const float *rptr_R = (const float *)inputChannelData[1];
+				ring_buffer_size_t elementsWriteable_R = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_R);
+				ring_buffer_size_t elementsToWrite_R = rbs_min(elementsWriteable_R, (ring_buffer_size_t)(numSamples));
+				PaUtil_WriteRingBuffer(&ringBufferIn_R, rptr_R, elementsToWrite_R);
+			}
+#pragma omp section
+			{
+				float *wptr = (float *)outputChannelData[0];
+				ring_buffer_size_t elementsToPlay = PaUtil_GetRingBufferReadAvailable(&ringBufferOut);
+				ring_buffer_size_t elementsToRead = rbs_min(elementsToPlay, (ring_buffer_size_t)(numSamples));
+				readedSamples = PaUtil_ReadRingBuffer(&ringBufferOut, wptr, elementsToRead);
+			}
+			if (readedSamples < numOfSamples)
+			{
+#pragma omp parallel for shedule(static, 4)
+				for (int i = readedSamples; i < numOfSamples; i += 4)
+				{
+					outputChannelData[0][i] = 0;
+					outputChannelData[0][i + 1] = 0;
+					outputChannelData[0][i + 2] = 0;
+					outputChannelData[0][i + 3] = 0;
+				}
+			}
+		}
+		
+
+
+#pragma omp parallel sections 
 		{
 #pragma omp section
 			{
 				pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
 				pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
-
-				//nlmsFilter.nlms_step((float*)inputChannelData[1], (float*)inputChannelData[0], outputChannelData[0], numSamples);
-#pragma omp section
-				{
-					monoIIR.processSamples((float*)inputChannelData[0], numSamples);
-					monoIIR.processSamples((float*)inputChannelData[1], numSamples);
-				}
-#pragma omp section
-				{
-					arm_lms_norm_anc(
-						&lmsNorm_instance,			/* LMSNorm instance */
-						(float*)inputChannelData[1],							/* Input signal */
-						(float*)inputChannelData[0],							/* Error Signal */
-						outputChannelData[0],						/* Converged Signal */
-						errOutput,					/* Error Signal, this will become small as the signal converges */
-						numSamples);				/* BlockSize */
-
-#if JUCE_USE_SIMD
-//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
-					memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
-#else
-					memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
-#endif
-				}
-#pragma omp section
-				{
-					FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);
-					monoIIR.processSamples(outputChannelData[0], numSamples);
-					FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
-				}
 			}
-		}
-		//=========================================================================================================================================================
+			//nlmsFilter.nlms_step((float*)inputChannelData[1], (float*)inputChannelData[0], outputChannelData[0], numSamples);
+				//monoIIR.processSamples((float*)inputChannelData[0], numSamples);
+				//monoIIR.processSamples((float*)inputChannelData[1], numSamples);
+
+			//arm_lms_norm_f32(
+			//	&lmsNorm_instance,			/* LMSNorm instance */
+			//	(float*)inputChannelData[1],							/* Input signal */
+			//	(float*)inputChannelData[0],							/* Reference-Error Signal */
+			//	outputChannelData[0],						/* Converged Signal */
+			//	errOutput,					/* Error Signal, this will become small as the signal converges */
+			//	numSamples);				/* BlockSize */
+			
+
+			//arm_lms_norm_anc(
+			//	&lmsNorm_instance,			/* LMSNorm instance */
+			//	(const float*)inputChannelData[1],							/* Input signal */
+			//	(float*)inputChannelData[0],							/* Reference-Error Signal */
+			//	outputChannelData[0],						/* Converged Signal */
+			//	errOutput,					/* Error Signal, this will become small as the signal converges */
+			//	numSamples);				/* BlockSize */
+
+			//NLMSFilter.processNLMS(
+			//	(float*)inputChannelData[1],
+			//	(float*)inputChannelData[0],
+			//	outputChannelData[0],
+			//	numSamples
+			//);
+
+#pragma omp section
+			{
+#if JUCE_USE_SIMD
+				//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
+				memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+				//memcpy(stereoFIR.state->coefficients.begin(), NLMSFilter.getCoeff(), filterSize * sizeof(float));
+#else
+				memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+#endif
+			}
+#pragma omp section
+			{
+				FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);				
+				//monoIIR.processSamples(outputChannelData[0], numSamples);
+				FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
+			}
+			//=========================================================================================================================================================
 #endif
 //		auto end = std::chrono::high_resolution_clock::now();
 //		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+		}
 	}
 	
 	
@@ -624,14 +798,16 @@ private:
 	float volume = 1.0f;
 
 	arm_lms_norm_instance_f32 lmsNorm_instance;
+	arm_lms_instance_f32 lms_instance;
 	float y[FRAMES_PER_BUFFER] = { 0.0f };								// Output data
 	float e[FRAMES_PER_BUFFER] = { 0.0f };								// Error data
 	float Out[FRAMES_PER_BUFFER] = { 0.0f };							// Output data
 	float errOutput[FRAMES_PER_BUFFER] = { 0.0f };						// Error data
 	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.0f };	// Array for NLMS algorithm
 	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
+	float zeros[FRAMES_PER_BUFFER] = { 0.0f };
 
-	NLMSFilter<NUM_OF_TAPS> nlmsFilter;
+	Adaptive::NLMS NLMSFilter;
 	
 	float fifo_L[88200];
 	int fifoIndex_L = 0;
@@ -640,6 +816,13 @@ private:
 	float fifo_P[88200];
 	int fifoIndex_P = 0;
 	bool nextSNRBlockReady_P = false;
+
+	PaUtilRingBuffer ringBufferIn_L;
+	PaUtilRingBuffer ringBufferIn_R;
+	PaUtilRingBuffer ringBufferOut;
+	float *ringBufferDataIn_L;
+	float *ringBufferDataIn_R;
+	float *ringBufferDataOut;
 
 #if JUCE_USE_SIMD
 	dsp::AudioBlock<float> inBlock;

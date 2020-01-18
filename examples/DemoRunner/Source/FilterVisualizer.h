@@ -13,7 +13,7 @@
 #include "../examples/Assets/DemoUtilities.h"
 /***************************************************************************//**
  * @brief 
- * @author Micha³ Berdzik
+ * @author MichaÂ³ Berdzik
  * @version 1.0 26/09/2019
  * @param 
  * @return
@@ -48,7 +48,7 @@ class  FilterVisualizer :  public Component,
 public:
 	/***************************************************************************//**
 	 * @brief Default constructor of FilterVisualizer class
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param
 	 * @return
@@ -59,7 +59,7 @@ public:
 	}
 	/***************************************************************************//**
 	 * @brief Parametrized constructor of FilterVisualizer class
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param fMin - minimal frequency to display on graph
 	 * @param fMax - maximal frequency to display on graph
@@ -74,7 +74,7 @@ public:
 	}
 	/***************************************************************************//**
 	 * @brief Destructor of FilterVisualizer class
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param
 	 * @return
@@ -82,7 +82,7 @@ public:
 	~FilterVisualizer() {};
 	/***************************************************************************//**
 	 * @brief function of timer callback - specifies what to do when timer is called
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param
 	 * @return
@@ -93,7 +93,7 @@ public:
 	}
 	/***************************************************************************//**
 	 * @brief Overriden function to paint new data on screen 
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param Reference to graphic module
 	 * @return
@@ -287,7 +287,7 @@ public:
     };
 	/***************************************************************************//**
 	 * @brief Function converting dB to Y int position
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param dB value
 	 * @return Y pixel position
@@ -299,7 +299,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function converting dB to Y float position
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param dB value
 	 * @return float Y pixel value
@@ -313,7 +313,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function converting Y position to dB value
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param float Y position
 	 * @return float dB value
@@ -327,7 +327,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function converting Hz value to X position
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param Hz value
 	 * @return X position
@@ -340,7 +340,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function converting X position to Hz value
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param X position
 	 * @return Hz value
@@ -352,7 +352,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function to set new sample rate
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param new sample rate value
 	 * @return
@@ -362,7 +362,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function to set new overall gain
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param new overall gain
 	 * @return
@@ -377,7 +377,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function to set new overall gain in dB
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param new overall gain in dB
 	 * @return
@@ -391,7 +391,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Overriden function called when application window is resized
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param
 	 * @return
@@ -446,7 +446,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function to add new filter to be shown on graph
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param Pointer to new FIR filter coefficients
 	 * @param New Colour of displayed filter
@@ -458,7 +458,7 @@ public:
     }
 	/***************************************************************************//**
 	 * @brief Function to set parralerism of displayed filter
-	 * @author Micha³ Berdzik
+	 * @author MichaÂ³ Berdzik
 	 * @version 1.0 26/09/2019
 	 * @param Value to set or disable parralerism of filters
 	 * @return

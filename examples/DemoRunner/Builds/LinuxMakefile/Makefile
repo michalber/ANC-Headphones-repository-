@@ -68,6 +68,7 @@ ifeq ($(CONFIG),Release)
 endif
 
 OBJECTS_APP := \
+  $(JUCE_OBJDIR)/pa_ringbuffer_997ea1ff.o \
   $(JUCE_OBJDIR)/DemoPIPs1_5b52b434.o \
   $(JUCE_OBJDIR)/DemoPIPs2_5b60cbb5.o \
   $(JUCE_OBJDIR)/JUCEDemos_5a07ba05.o \
@@ -108,6 +109,11 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) : $(OBJECTS_APP) $(RESOURCES)
 	-$(V_AT)mkdir -p $(JUCE_LIBDIR)
 	-$(V_AT)mkdir -p $(JUCE_OUTDIR)
 	$(V_AT)$(CXX) -o $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(OBJECTS_APP) $(JUCE_LDFLAGS) $(JUCE_LDFLAGS_APP) $(RESOURCES) $(TARGET_ARCH)
+
+$(JUCE_OBJDIR)/pa_ringbuffer_997ea1ff.o: ../../Source/pa_ringbuffer.cpp
+	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
+	@echo "Compiling pa_ringbuffer.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/DemoPIPs1_5b52b434.o: ../../Source/Demos/DemoPIPs1.cpp
 	-$(V_AT)mkdir -p $(JUCE_OBJDIR)

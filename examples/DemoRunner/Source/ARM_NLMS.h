@@ -29,6 +29,14 @@ typedef struct
 	float x0;        /**< saves previous input sample. */
 } arm_lms_norm_instance_f32;
 
+typedef struct
+{
+	int numTaps;    /**< number of coefficients in the filter. */
+	float *pState;   /**< points to the state variable array. The array is of length numTaps+blockSize-1. */
+	float *pCoeffs;  /**< points to the coefficient array. The array is of length numTaps. */
+	float mu;        /**< step size that controls filter coefficient updates. */
+} arm_lms_instance_f32;
+
 /**
  * @brief Processing function for floating-point normalized LMS filter.
  * @param[in] *S points to an instance of the floating-point normalized LMS filter structure.
@@ -48,9 +56,25 @@ inline void arm_lms_norm_f32(
 	float * pErr,
 	int blockSize);
 
+inline void arm_lms_f32(
+	arm_lms_instance_f32 * S,
+	const float * pSrc,
+	float * pRef,
+	float * pOut,
+	float * pErr,
+	int blockSize);
+
 inline void arm_lms_norm_anc(
 	arm_lms_norm_instance_f32 * S,
-	float * pSrc,
+	const float * pSrc,
+	float * pErrIn,
+	float * pOut,
+	float * pErr,
+	int blockSize);
+
+inline void arm_lms_anc(
+	arm_lms_instance_f32 * S,
+	const float * pSrc,
 	float * pErrIn,
 	float * pOut,
 	float * pErr,
@@ -69,6 +93,14 @@ inline void arm_lms_norm_anc(
 
 void arm_lms_norm_init_f32(
 	arm_lms_norm_instance_f32 * S,
+	int numTaps,
+	float * pCoeffs,
+	float * pState,
+	float mu,
+	int blockSize);
+
+void arm_lms_init_f32(
+	arm_lms_instance_f32 * S,
 	int numTaps,
 	float * pCoeffs,
 	float * pState,
@@ -163,6 +195,30 @@ void arm_lms_norm_init_f32(
 	/* Initialise x0 to zero */
 	S->x0 = 0.0f;
 
+}
+
+void arm_lms_init_f32(
+	arm_lms_instance_f32 * S,
+	int numTaps,
+	float * pCoeffs,
+	float * pState,
+	float mu,
+	int blockSize)
+{
+	/* Assign filter taps */
+	S->numTaps = numTaps;
+
+	/* Assign coefficient pointer */
+	S->pCoeffs = pCoeffs;
+
+	/* Clear state buffer and size is always blockSize + numTaps */
+	memset(pState, 0, (numTaps + (blockSize - 1)) * sizeof(float));
+
+	/* Assign state pointer */
+	S->pState = pState;
+
+	/* Assign Step size value */
+	S->mu = mu;
 }
 
 /**
@@ -425,6 +481,7 @@ inline void arm_lms_norm_f32(
 		tapCnt = numTaps >> 2;
 
 		/* Update filter coefficients */
+
 		while (tapCnt > 0u)
 		{
 			/* Perform the multiply-accumulate */
@@ -504,14 +561,180 @@ inline void arm_lms_norm_f32(
 		tapCnt--;
 	}
 }
+inline void arm_lms_f32(
+	arm_lms_instance_f32 * S,
+	const float * pSrc,
+	float * pRef,
+	float * pOut,
+	float * pErr,
+	int blockSize)
+{
+	float *pState = S->pState;                 /* State pointer */
+	float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
+	float *pStateCurnt;                        /* Points to the current sample of the state */
+	float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
+	float mu = S->mu;                          /* Adaptive factor */
+	float acc, e;                              /* Accumulator, error */
+	float w;                                   /* Weight factor */
+	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
+	int tapCnt, blkCnt;                       /* Loop counters */
 
+/* Initializations of error,  difference, Coefficient update */
+	e = 0.0f;
+	w = 0.0f;
+
+	/* S->pState points to state array which contains previous frame (numTaps - 1) samples */
+	/* pStateCurnt points to the location where the new input data should be written */
+	pStateCurnt = &(S->pState[(numTaps - 1U)]);
+
+	/* initialise loop count */
+	blkCnt = blockSize;
+
+	while (blkCnt > 0U)
+	{
+		/* Copy the new input sample into the state buffer */
+		*pStateCurnt++ = *pSrc++;
+
+		/* Initialize pState pointer */
+		px = pState;
+
+		/* Initialize coefficient pointer */
+		pb = pCoeffs;
+
+		/* Set the accumulator to zero */
+		acc = 0.0f;
+
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
+
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
+
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+
+		/* Store the result from accumulator into the destination buffer. */
+		*pOut++ = acc;
+
+		/* Compute and store error */
+		e = (float)*pRef++ - acc;
+		*pErr++ = e;
+
+		/* Calculation of Weighting factor for updating filter coefficients */
+		w = e * mu;
+
+		/* Initialize pState pointer */
+		/* Advance state pointer by 1 for the next sample */
+		px = pState++;
+
+		/* Initialize coefficient pointer */
+		pb = pCoeffs;
+
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
+
+		/* Update filter coefficients */
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
+
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			*pb += w * (*px++);
+			pb++;
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+	/* Processing is complete.
+	   Now copy the last numTaps - 1 samples to the start of the state buffer.
+	   This prepares the state buffer for the next function call. */
+
+	   /* Points to the start of the pState buffer */
+	pStateCurnt = S->pState;
+
+	/* copy data */
+
+  /* Loop unrolling: Compute 4 taps at a time. */
+	tapCnt = (numTaps - 1U) >> 2U;
+
+	while (tapCnt > 0U)
+	{
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+
+		/* Decrement loop counter */
+		tapCnt--;
+	}
+
+	/* Loop unrolling: Compute remaining taps */
+	tapCnt = (numTaps - 1U) % 0x4U;
+
+	while (tapCnt > 0U)
+	{
+		*pStateCurnt++ = *pState++;
+
+		/* Decrement loop counter */
+		tapCnt--;
+	}
+
+}
 /**
    * @} end of LMS_NORM group
    */
 
 inline void arm_lms_norm_anc(
 	arm_lms_norm_instance_f32 * S,
-	float * pSrc,
+	const float * pSrc,
 	float * pErrIn,
 	float * pOut,
 	float * pErr,
@@ -522,13 +745,14 @@ inline void arm_lms_norm_anc(
 	float *pStateCurnt;                        /* Points to the current sample of the state */
 	float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
 	float mu = S->mu;                          /* Adaptive factor */
+	float acc, e;                              /* Accumulator, error */
+	float w;                                   /* Weight factor */
 	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
 	int tapCnt, blkCnt;                       /* Loop counters */
 	float energy;                              /* Energy of the input */
-	float sum, e;                           /* accumulator, error, reference data sample */
-	float w, x0, in;                           /* weight factor, temporary variable to hold input sample and state */
+	float x0, in;                              /* Temporary variable to hold input sample and state */
 
-	/* Initializations of error,  difference, Coefficient update */
+/* Initializations of error,  difference, Coefficient update */
 	e = 0.0f;
 	w = 0.0f;
 
@@ -537,12 +761,12 @@ inline void arm_lms_norm_anc(
 
 	/* S->pState points to buffer which contains previous frame (numTaps - 1) samples */
 	/* pStateCurnt points to the location where the new input data should be written */
-	pStateCurnt = &(S->pState[(numTaps - 1u)]);
+	pStateCurnt = &(S->pState[(numTaps - 1U)]);
 
+	/* initialise loop count */
 	blkCnt = blockSize;
 
-#pragma omp simd
-	while (blkCnt > 0u)
+	while (blkCnt > 0U)
 	{
 		/* Copy the new input sample into the state buffer */
 		*pStateCurnt++ = *pSrc;
@@ -550,8 +774,8 @@ inline void arm_lms_norm_anc(
 		/* Initialize pState pointer */
 		px = pState;
 
-		/* Initialize coeff pointer */
-		pb = (pCoeffs);
+		/* Initialize coefficient pointer */
+		pb = pCoeffs;
 
 		/* Read the sample from input buffer */
 		in = *pSrc++;
@@ -561,41 +785,43 @@ inline void arm_lms_norm_anc(
 		energy += in * in;
 
 		/* Set the accumulator to zero */
-		sum = 0.0f;
+		acc = 0.0f;
 
-		/* Loop unrolling.  Process 4 taps at a time. */
-		tapCnt = numTaps >> 2;
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
 
-#pragma omp simd
-		while (tapCnt > 0u)
+		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
-			sum += (*px++) * (*pb++);
-			sum += (*px++) * (*pb++);
-			sum += (*px++) * (*pb++);
-			sum += (*px++) * (*pb++);
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
 
 			/* Decrement the loop counter */
 			tapCnt--;
 		}
 
-		/* If the filter length is not a multiple of 4, compute the remaining filter taps */
-		tapCnt = numTaps % 0x4u;
-
-		while (tapCnt > 0u)
-		{
-			/* Perform the multiply-accumulate */
-			sum += (*px++) * (*pb++);
-
-			/* Decrement the loop counter */
-			tapCnt--;
-		}
-
-		/* The result in the accumulator, store in the destination buffer. */
-		*pOut++ = sum;
+		/* Store the result from accumulator into the destination buffer. */
+		*pOut++ = -acc;
 
 		/* Compute and store error */
-		e = (float)(*pErrIn++);		
+		e = -((float)*pErrIn++);
 		*pErr++ = e;
 
 		/* Calculation of Weighting factor for updating filter coefficients */
@@ -605,16 +831,14 @@ inline void arm_lms_norm_anc(
 		/* Initialize pState pointer */
 		px = pState;
 
-		/* Initialize coeff pointer */
-		pb = (pCoeffs);
+		/* Initialize coefficient pointer */
+		pb = pCoeffs;
 
-		/* Loop unrolling.  Process 4 taps at a time. */
-		tapCnt = numTaps >> 2;
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
 
 		/* Update filter coefficients */
-
-#pragma omp simd
-		while (tapCnt > 0u)
+		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
 			*pb += w * (*px++);
@@ -629,21 +853,20 @@ inline void arm_lms_norm_anc(
 			*pb += w * (*px++);
 			pb++;
 
-
-			/* Decrement the loop counter */
+			/* Decrement loop counter */
 			tapCnt--;
 		}
 
-		/* If the filter length is not a multiple of 4, compute the remaining filter taps */
-		tapCnt = numTaps % 0x4u;
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
 
-		while (tapCnt > 0u)
+		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
 			*pb += w * (*px++);
 			pb++;
 
-			/* Decrement the loop counter */
+			/* Decrement loop counter */
 			tapCnt--;
 		}
 
@@ -652,48 +875,215 @@ inline void arm_lms_norm_anc(
 		/* Advance state pointer by 1 for the next sample */
 		pState = pState + 1;
 
-		/* Decrement the loop counter */
+		/* Decrement loop counter */
 		blkCnt--;
 	}
 
+	/* Save energy and x0 values for the next frame */
 	S->energy = energy;
 	S->x0 = x0;
 
-	/* Processing is complete. Now copy the last numTaps - 1 samples to the
-	   satrt of the state buffer. This prepares the state buffer for the
-	   next function call. */
+	/* Processing is complete.
+	   Now copy the last numTaps - 1 samples to the start of the state buffer.
+	   This prepares the state buffer for the next function call. */
 
 	   /* Points to the start of the pState buffer */
 	pStateCurnt = S->pState;
 
-	/* Loop unrolling for (numTaps - 1u)/4 samples copy */
-	tapCnt = (numTaps - 1u) >> 2u;
+	/* copy data */
+  /* Loop unrolling: Compute 4 taps at a time. */
+	tapCnt = (numTaps - 1U) >> 2U;
+
+	while (tapCnt > 0U)
+	{
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+		*pStateCurnt++ = *pState++;
+
+		/* Decrement loop counter */
+		tapCnt--;
+	}
+
+	/* Loop unrolling: Compute remaining taps */
+	tapCnt = (numTaps - 1U) % 0x4U;
+
+	while (tapCnt > 0U)
+	{
+		*pStateCurnt++ = *pState++;
+
+		/* Decrement loop counter */
+		tapCnt--;
+	}
+
+}
+
+inline void arm_lms_anc(
+	arm_lms_instance_f32 * S,
+	const float * pSrc,
+	float * pErrIn,
+	float * pOut,
+	float * pErr,
+	int blockSize)
+{
+	float *pState = S->pState;                 /* State pointer */
+	float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
+	float *pStateCurnt;                        /* Points to the current sample of the state */
+	float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
+	float mu = S->mu;                          /* Adaptive factor */
+	float acc, e;                              /* Accumulator, error */
+	float w;                                   /* Weight factor */
+	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
+	int tapCnt, blkCnt;                       /* Loop counters */
+
+/* Initializations of error,  difference, Coefficient update */
+	e = 0.0f;
+	w = 0.0f;
+
+	/* S->pState points to state array which contains previous frame (numTaps - 1) samples */
+	/* pStateCurnt points to the location where the new input data should be written */
+	pStateCurnt = &(S->pState[(numTaps - 1U)]);
+
+	/* initialise loop count */
+	blkCnt = blockSize;
+
+	while (blkCnt > 0U)
+	{
+		/* Copy the new input sample into the state buffer */
+		*pStateCurnt++ = *pSrc++;
+
+		/* Initialize pState pointer */
+		px = pState;
+
+		/* Initialize coefficient pointer */
+		pb = pCoeffs;
+
+		/* Set the accumulator to zero */
+		acc = 0.0f;
+
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			acc += (*px++) * (*pb++);
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
+
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
+
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+
+		/* Store the result from accumulator into the destination buffer. */
+		*pOut++ = -acc;
+
+		/* Compute and store error */
+		e = -((float)*pErrIn++);
+		*pErr++ = e;
+
+		/* Calculation of Weighting factor for updating filter coefficients */
+		w = e * mu;
+
+		/* Initialize pState pointer */
+		/* Advance state pointer by 1 for the next sample */
+		px = pState++;
+
+		/* Initialize coefficient pointer */
+		pb = pCoeffs;
+
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
+
+		/* Update filter coefficients */
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			*pb += w * (*px++);
+			pb++;
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
+
+
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			*pb += w * (*px++);
+			pb++;
+
+			/* Decrement loop counter */
+			tapCnt--;
+		}
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+	/* Processing is complete.
+	   Now copy the last numTaps - 1 samples to the start of the state buffer.
+	   This prepares the state buffer for the next function call. */
+
+	   /* Points to the start of the pState buffer */
+	pStateCurnt = S->pState;
 
 	/* copy data */
-	
-#pragma omp simd
-	while (tapCnt > 0u)
+
+  /* Loop unrolling: Compute 4 taps at a time. */
+	tapCnt = (numTaps - 1U) >> 2U;
+
+	while (tapCnt > 0U)
 	{
 		*pStateCurnt++ = *pState++;
 		*pStateCurnt++ = *pState++;
 		*pStateCurnt++ = *pState++;
 		*pStateCurnt++ = *pState++;
 
-		/* Decrement the loop counter */
+		/* Decrement loop counter */
 		tapCnt--;
 	}
 
-	/* Calculate remaining number of copies */
-	tapCnt = (numTaps - 1u) % 0x4u;
+	/* Loop unrolling: Compute remaining taps */
+	tapCnt = (numTaps - 1U) % 0x4U;
 
-	/* Copy the remaining q31_t data */
-	while (tapCnt > 0u)
+	while (tapCnt > 0U)
 	{
 		*pStateCurnt++ = *pState++;
 
-		/* Decrement the loop counter */
+		/* Decrement loop counter */
 		tapCnt--;
 	}
+
 }
 
    /**
@@ -784,8 +1174,7 @@ public:
 	FIRFilter(int _filterSize, filter_coeffs_array coefficients) : _filter_coefficients(coefficients), filterSize{ _filterSize },
 		_samples_buffer{ 0.0 } {}
 
-	FIRFilter(filter_coeffs_array coefficients) : _filter_coefficients(coefficients),
-		_samples_buffer{ 0.0 } {}
+	FIRFilter(filter_coeffs_array coefficients) : _filter_coefficients(coefficients), _samples_buffer{ 0.0 } {}
 
 	float fir_step(float new_sample) {
 		float new_val = 0;
@@ -867,8 +1256,7 @@ public:
 		fir_filter.set_coefficients(_nlms_coefficients);
 	}
 
-	NLMSFilter(float mu, filter_coeffs_array initial_filter) : mu{ mu }, filterSize(filter_length)		
-		_nlms_coefficients{0.0}, _samples_buffer{ {0.0} } 
+	NLMSFilter(float mu, filter_coeffs_array initial_filter) : mu{ mu }, filterSize(filter_length), _nlms_coefficients{0.0}, _samples_buffer{ {0.0} } 
 	{
 		fir_filter = FIRFilter<filter_length>(filterSize);
 		fir_filter.set_coefficients(initial_filter);
@@ -908,3 +1296,230 @@ private:
 	filter_coeffs_array _nlms_coefficients;
 	samples_array _samples_buffer;
 };
+
+#pragma once
+/*
+MATLAB code for my NLMS
+
+	x = x;
+	xx = zeros(M,1);
+	w1 = zeros(M,1);
+	y = zeros(Ns,1);
+	e = zeros(Ns,1);
+
+	for n = 1:Ns
+		xx = [xx(2:M);x(n)];
+		y(n) = w1' * xx;
+		k = mu/(a + xx'*xx);
+		e(n) = d(n) - y(n);
+		w1 = w1 + k * e(n) * xx;
+		w(:,n) = w1;
+	end
+*/
+
+#include <vector>
+#include <string.h>
+#include "config.h"
+#include <omp.h>
+
+namespace Adaptive {
+	class NLMS
+	{
+		int NumOfTaps;	//filter size
+		float mu;	//step size
+		float a;	//R factor
+
+		int bufferSize = 0;
+
+		// Signal vectors
+		float y[FRAMES_PER_BUFFER] = { 0 };			// Output data
+		float w1[NUM_OF_TAPS] = { 0 };		// filter coeff.
+		float xx[NUM_OF_TAPS] = { 0 };		// vector to apply filter to
+		float err[FRAMES_PER_BUFFER] = { 0 };
+		float k = { 0 };
+
+		float errOutput[FRAMES_PER_BUFFER] = { 0 };
+		float Out[FRAMES_PER_BUFFER] = { 0 };
+		float AntyAliasOut[FRAMES_PER_BUFFER] = { 0 };
+
+
+	public:
+		NLMS(void);
+		NLMS(int size);
+		NLMS(int x, float y, float z);
+		~NLMS();
+
+		inline void processNLMS(float *x, float *e, float *out, int blockSize);
+		inline const float* getCoeff();
+
+	private:
+		inline void pushBack(float *a, float x);
+	};
+
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief Default constructor of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+	*/
+
+	NLMS::NLMS() : NumOfTaps(100), mu(0.5), a(0.0001)
+	{
+		memset(y, 0, FRAMES_PER_BUFFER);
+		memset(xx, 0, NumOfTaps);
+		memset(w1, 0, NumOfTaps);
+		for (int i = 0; i < NumOfTaps; i++)
+		{
+			w1[i] = -1.0f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (2.0f)));
+		}
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief Parametrized constructor of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+		@param filterSize
+		@param stepSize
+		@param RFactor
+	*/
+	NLMS::NLMS(int filterSize, float stepSize, float RFactor) : NumOfTaps(filterSize), mu(stepSize), a(RFactor)
+	{
+		memset(y, 0, FRAMES_PER_BUFFER);
+		memset(xx, 0, NumOfTaps);
+		memset(w1, 0, NumOfTaps);
+		for (int i = 0; i < NumOfTaps; i++)
+		{
+			w1[i] = -1.0f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (2.0f)));
+		}
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief Destructor of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+	*/
+	NLMS::~NLMS()
+	{
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief processNLMS method of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+		@param vector<float> d - destiny sound input data
+		@param vector<float> x - noise sound input data
+	*/
+
+	/*
+	MATLAB code for my NLMS
+
+		x = x;
+		xx = zeros(M,1);
+		w1 = zeros(M,1);
+		y = zeros(Ns,1);
+		e = zeros(Ns,1);
+
+		for n = 1:Ns
+			xx = [xx(2:M);x(n)];
+			y(n) = w1' * xx;
+			k = mu/(a + xx'*xx);
+			e(n) = d(n) - y(n);
+			w1 = w1 + k * e(n) * xx;
+			w(:,n) = w1;
+		end
+	*/
+
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief processNLMS method of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+		@param float d - destiny sound input data
+		@param float x - noise sound input data
+	*/
+	void NLMS::processNLMS(float *x, float *d, float *out, int blockSize)
+	{
+		int i = 0;
+		int j = 0;
+		int l = 0;
+		float temp;
+#pragma omp parallel sections
+		{
+#pragma omp section
+			{
+				memset(&out[0], 0, blockSize * sizeof(float));
+				memset(&y[0], 0, blockSize * sizeof(float));
+				memset(&err[0], 0, blockSize * sizeof(float));
+			}
+#pragma omp section
+			{
+				for (i = 0; i < blockSize; i++) {
+					pushBack(&xx[0], x[i]);
+					//xx[NumOfTaps - 1] = x[i];
+					xx[0] = x[i];
+
+					// filter input data
+#pragma omp parallel for schedule(static, 4) reduction(+:y) reduction(+:temp)
+					for (j = 0, temp = 0; j < NumOfTaps; j+=4) {
+						y[i] += w1[j] * xx[j];
+						temp += xx[j] * xx[j];
+
+						y[i] += w1[j + 1] * xx[j + 1];
+						temp += xx[j + 1] * xx[j + 1];
+
+						y[i] += w1[j + 1] * xx[j + 1];
+						temp += xx[j + 1] * xx[j + 1];
+
+						y[i] += w1[j + 1] * xx[j + 1];
+						temp += xx[j + 1] * xx[j + 1];
+					}
+
+					out[i] = -y[i];
+
+					//err[i] = d[i] - y[i];
+
+					k = mu / (a + temp);
+
+					// update filter coeff.
+#pragma omp parallel for schedule(static, 4) reduction(+:w1)
+					//for (l = 0; l < NumOfTaps; l+=4) {
+					//	w1[l] += (k * err[i] * xx[l]);
+					//	w1[l + 1] += (k * err[i] * xx[l + 1]);
+					//	w1[l + 2] += (k * err[i] * xx[l + 2]);
+					//	w1[l + 3] += (k * err[i] * xx[l + 3]);
+					//}
+					for (l = 0; l < NumOfTaps; l += 4) {
+						w1[l] += (k * (-d[i]) * xx[l]);
+						w1[l + 1] += (k * (-d[i]) * xx[l + 1]);
+						w1[l + 2] += (k * (-d[i]) * xx[l + 2]);
+						w1[l + 3] += (k * (-d[i]) * xx[l + 3]);
+					}
+				}
+			}
+		}
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief pushBack method of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+		@param float &a - reference to array to push data to
+		@param float x - pushed data
+	*/
+	void NLMS::pushBack(float *a, float x)
+	{
+		//memmove(&a[0],&a[1], (NUM_OF_TAPS - 1) * sizeof(float));
+		//a[NUM_OF_TAPS] = x;
+
+		for (int i = NumOfTaps - 1; i > 0; --i) {
+			a[i] = a[i - 1];
+		}
+	}
+
+	const float* NLMS::getCoeff()
+	{
+		return &w1[0];
+	}
+}
