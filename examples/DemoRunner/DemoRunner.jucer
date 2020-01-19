@@ -77,7 +77,7 @@
             extraCompilerFlags="/w44265 /w45038 /w44062" extraDefs="ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" headerPath="/DSP_Lib/Include&#10;/CMSIS/CM4/CoreSupport"/>
-        <CONFIGURATION isDebug="0" name="Release" useRuntimeLibDLL="0"/>
+        <CONFIGURATION isDebug="1" name="Release" useRuntimeLibDLL="0"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../../modules"/>

@@ -1144,9 +1144,139 @@ float arm_snr_f32(float *pRef, float *pTest, uint32_t buffSize)
 }
 
 
+void arm_dot_prod_f32(
+	const float * pSrcA,
+	const float * pSrcB,
+	int blockSize,
+	float * result)
+{
+	int blkCnt;                               /* Loop counter */
+	float sum = 0.0f;                          /* Temporary return variable */
+
+  /* Loop unrolling: Compute 4 outputs at a time */
+	blkCnt = blockSize >> 2U;
+
+	/* First part of the processing with loop unrolling. Compute 4 outputs at a time.
+	 ** a second loop below computes the remaining 1 to 3 samples. */
+	while (blkCnt > 0U)
+	{
+		/* C = A[0]* B[0] + A[1]* B[1] + A[2]* B[2] + .....+ A[blockSize-1]* B[blockSize-1] */
+
+		/* Calculate dot product and store result in a temporary buffer. */
+		sum += (*pSrcA++) * (*pSrcB++);
+
+		sum += (*pSrcA++) * (*pSrcB++);
+
+		sum += (*pSrcA++) * (*pSrcB++);
+
+		sum += (*pSrcA++) * (*pSrcB++);
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+	/* Loop unrolling: Compute remaining outputs */
+	blkCnt = blockSize % 0x4U;
 
 
+	while (blkCnt > 0U)
+	{
+		/* C = A[0]* B[0] + A[1]* B[1] + A[2]* B[2] + .....+ A[blockSize-1]* B[blockSize-1] */
 
+		/* Calculate dot product and store result in a temporary buffer. */
+		sum += (*pSrcA++) * (*pSrcB++);
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+	/* Store result in destination buffer */
+	*result = sum;
+}
+
+void arm_add_f32(
+	const float * pSrcA,
+	const float * pSrcB,
+	float * pDst,
+	int blockSize)
+{
+	int blkCnt;                               /* Loop counter */
+
+  /* Loop unrolling: Compute 4 outputs at a time */
+	blkCnt = blockSize >> 2U;
+
+	while (blkCnt > 0U)
+	{
+		/* C = A + B */
+
+		/* Add and store result in destination buffer. */
+		*pDst++ = (*pSrcA++) + (*pSrcB++);
+		*pDst++ = (*pSrcA++) + (*pSrcB++);
+		*pDst++ = (*pSrcA++) + (*pSrcB++);
+		*pDst++ = (*pSrcA++) + (*pSrcB++);
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+	/* Loop unrolling: Compute remaining outputs */
+	blkCnt = blockSize % 0x4U;
+
+	while (blkCnt > 0U)
+	{
+		/* C = A + B */
+
+		/* Add and store result in destination buffer. */
+		*pDst++ = (*pSrcA++) + (*pSrcB++);
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+}
+
+void arm_scale_f32(
+	const float *pSrc,
+	float scale,
+	float *pDst,
+	int blockSize)
+{
+	int blkCnt;                               /* Loop counter */
+
+  /* Loop unrolling: Compute 4 outputs at a time */
+	blkCnt = blockSize >> 2U;
+
+	while (blkCnt > 0U)
+	{
+		/* C = A * scale */
+
+		/* Scale input and store result in destination buffer. */
+		*pDst++ = (*pSrc++) * scale;
+
+		*pDst++ = (*pSrc++) * scale;
+
+		*pDst++ = (*pSrc++) * scale;
+
+		*pDst++ = (*pSrc++) * scale;
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+	/* Loop unrolling: Compute remaining outputs */
+	blkCnt = blockSize % 0x4U;
+
+	while (blkCnt > 0U)
+	{
+		/* C = A * scale */
+
+		/* Scale input and store result in destination buffer. */
+		*pDst++ = (*pSrc++) * scale;
+
+		/* Decrement loop counter */
+		blkCnt--;
+	}
+
+}
 
 
 
@@ -1521,5 +1651,225 @@ namespace Adaptive {
 	const float* NLMS::getCoeff()
 	{
 		return &w1[0];
+	}
+}
+
+
+
+
+namespace Adaptive {
+	class FbLMS
+	{
+		int NumOfTaps;	//filter size		
+		
+		//float mu = 0.0001;  // Step Size
+		float w[NUM_OF_TAPS] = { 0 }; // Secondary Path	
+
+		float out;  // Filter Coefficient
+		float c[NUM_OF_TAPS];
+		float muedf[NUM_OF_TAPS];
+		float yQueue[NUM_OF_TAPS];
+		float dQueue[NUM_OF_TAPS];
+		float dfQueue[NUM_OF_TAPS];
+
+		float y;  // Speaker Output
+		float yw; // Speaker Output Signal After Secondary Acoustic Path
+		float d;  // Estimated Reference Signal
+		float e;
+		float mue;  // mu*e
+		float df; // Filtered Reference Signal
+
+
+		// FOR PREDICTING SEC-PATH
+		float r;
+		//float d;  // Error Mic Input
+		float mu; // Step Size
+		float muTrain = 0.0000005; // Step Size
+		float x[NUM_OF_TAPS];  // Generated Noise Queue
+		//float w[NUM_OF_TAPS];  // Secondary Path Coefficient
+		float muEX[NUM_OF_TAPS]; // mu*e*x Queue
+		//float y;  // Estimated Error Mic Input
+		//float e;  // e = d - y
+		//float mue;  // mu*e
+
+
+	public:
+		FbLMS(void);
+		FbLMS(int size);
+		FbLMS(int x, float y);
+		~FbLMS();
+
+		void processFbLMS(float *error, float *output, int blockSize);
+		void predictSecPath(float *error, float *output, int blockSize);
+		void prepareForANC();
+		inline const float* getCoeff();
+	};
+
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief Default constructor of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+	*/
+
+	FbLMS::FbLMS() : NumOfTaps(100), mu(0.5)
+	{
+
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief Parametrized constructor of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+		@param filterSize
+		@param stepSize
+		@param RFactor
+	*/
+	FbLMS::FbLMS(int filterSize, float stepSize) : NumOfTaps(filterSize), mu(stepSize)
+	{
+		memset(c, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(muedf, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(yQueue, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(dQueue, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(dfQueue, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(x, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(muEX, 0.00001, sizeof(float)*NUM_OF_TAPS);
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief Destructor of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+	*/
+	FbLMS::~FbLMS()
+	{
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+	/**
+		@brief processNLMS method of NLMS class
+		@author	Michal Berdzik
+		@version 0.1 05-07-2019
+		@param float d - destiny sound input data
+		@param float x - noise sound input data
+	*/
+	void FbLMS::processFbLMS(float *error, float *output, int blockSize)
+	{
+		int i = 0;
+
+		for (int blockCount = 0; blockCount < blockSize; blockCount++)
+		{
+			arm_dot_prod_f32(w, yQueue, NumOfTaps, &yw);
+
+			d = e + yw;
+
+			for (i = NumOfTaps - 1; i > 0; --i) {
+				dQueue[i] = dQueue[i - 1];
+			}
+
+			//while (i > 1)
+			//{
+			//	dQueue[i - 1] = dQueue[i - 2];
+			//	i--;
+			//}
+			dQueue[0] = d;
+
+			arm_dot_prod_f32(dQueue, c, NumOfTaps, &y);
+
+			out = -y;
+			//analogWrite(speakerPin, out);
+			output[blockCount] = out;
+
+			for (i = NumOfTaps - 1; i > 0; --i) {
+				yQueue[i] = yQueue[i - 1];
+			}
+
+			//while (i > 1)
+			//{
+			//	yQueue[i - 1] = yQueue[i - 2];
+			//	i--;
+			//}
+			yQueue[0] = y;
+
+			arm_dot_prod_f32(yQueue, w, NumOfTaps, &yw);
+
+			//adc->adc0->analogRead(micPin);
+
+			e = error[blockCount] - yw;
+
+			arm_dot_prod_f32(dQueue, w, NumOfTaps, &df);
+
+			for (i = NumOfTaps - 1; i > 0; --i) {
+				dfQueue[i] = dfQueue[i - 1];
+			}
+			//while (i > 1)
+			//{
+			//	dQueue[i - 1] = dfQueue[i - 2];
+			//	i--;
+			//}
+
+			dfQueue[0] = df;
+
+			mue = mu * e;
+
+			arm_scale_f32(dfQueue, mue, muedf, NumOfTaps);
+
+			arm_add_f32(c, muedf, c, NumOfTaps);
+		}
+	}
+
+	void FbLMS::predictSecPath(float * error, float * output, int blockSize)
+	{
+		d = 0;
+		e = 0;
+
+		for (int blockCount = 0; blockCount < blockSize; blockCount++)
+		{
+			// Shift elements in Queue to the right and add latest element at the 0 position
+			int k = NumOfTaps;
+			while (k > 1)
+			{
+				x[k - 1] = x[k - 2];
+				k--;
+			}
+			r = -1.0f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (2.0f)));
+			x[0] = r;
+			// Write signal to the speaker
+			//analogWrite(speakerPin, r);
+			output[blockCount] = r;
+
+			// Dot product
+			arm_dot_prod_f32(x, w, NumOfTaps, &y);
+
+			//adc->adc0->analogRead(micPin);
+
+			d = error[blockCount];
+
+			e = d - y;
+
+			mue = muTrain * e;
+
+			arm_scale_f32(x, mue, muEX, NumOfTaps);
+
+			arm_add_f32(w, muEX, w, NumOfTaps);
+		}
+	}
+	
+	void FbLMS::prepareForANC()
+	{
+		float out = 0;
+
+		float y = 0;  // Speaker Output
+		float yw = 0; // Speaker Output Signal After Secondary Acoustic Path
+		float d = 0;  // Estimated Reference Signal
+		float e = 0;
+		float mue = 0;  // mu*e
+		float df = 0;
+	}
+	//--------------------------------------------------------------------------------------------------------------------
+
+	const float* FbLMS::getCoeff()
+	{
+		return &c[0];
 	}
 }

@@ -278,7 +278,9 @@ public:
 
 		volatile float buffer[FRAMES_PER_BUFFER * 4];
 		float *bufferPtr = (float *)buffer;
-
+		static int sampleDelay = 0;
+		int sampleCount = 48000 * 20;
+		bool resetFbLMS = false;
 
 		while (!threadShouldExit())
 		{
@@ -312,14 +314,32 @@ public:
 
 //					monoIIR.processSamples((float*)bufferPtr_L, readedSamples_L);
 //					monoIIR.processSamples((float*)bufferPtr_R, readedSamples_L);
-					
-					arm_lms_norm_f32(
-						&lmsNorm_instance,			/* LMSNorm instance */
-						(float*)bufferPtr_R,							/* Input signal */
-						(float*)bufferPtr_L,							/* Reference-Error Signal */
-						bufferPtr,						/* Converged Signal */
-						errOutput,					/* Error Signal, this will become small as the signal converges */
-						readedSamples_L);				/* BlockSize */
+					sampleDelay+=readedSamples_L;
+					if (sampleDelay > FRAMES_PER_BUFFER)
+					{
+						if (sampleCount > 0)
+						{
+							FbNLMSFilter.predictSecPath(bufferPtr_L, bufferPtr, readedSamples_L);
+							sampleCount -= readedSamples_L;
+						}
+						else
+						{
+							if (!resetFbLMS)
+							{
+								FbNLMSFilter.prepareForANC();
+								resetFbLMS = true;
+							}
+							FbNLMSFilter.processFbLMS(bufferPtr_L, bufferPtr, readedSamples_L);
+						}
+					}					
+// WITH THIS WORK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					//arm_lms_norm_f32(
+					//	&lmsNorm_instance,			/* LMSNorm instance */
+					//	(float*)bufferPtr_R,							/* Input signal */
+					//	(float*)bufferPtr_L,							/* Reference-Error Signal */
+					//	bufferPtr,						/* Converged Signal */
+					//	errOutput,					/* Error Signal, this will become small as the signal converges */
+					//	readedSamples_L);				/* BlockSize */
 
 					//NLMSFilter.processNLMS(
 					//	(float*)bufferPtr_R,
@@ -510,6 +530,7 @@ public:
 		monoIIRHP.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, 30, 0.7));
 
 		NLMSFilter = Adaptive::NLMS(filterSize, muValue, 0.00000001);
+		FbNLMSFilter = Adaptive::FbLMS(filterSize, muValue);
 
 
 
@@ -738,8 +759,9 @@ public:
 			{
 #if JUCE_USE_SIMD
 				//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
-				memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+				//memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), NLMSFilter.getCoeff(), filterSize * sizeof(float));
+				memcpy(stereoFIR.state->coefficients.begin(), FbNLMSFilter.getCoeff(), filterSize * sizeof(float));
 #else
 				memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 #endif
@@ -811,7 +833,8 @@ private:
 	float zeros[FRAMES_PER_BUFFER] = { 0.0f };
 
 	Adaptive::NLMS NLMSFilter;
-	
+	Adaptive::FbLMS FbNLMSFilter;
+
 	float fifo_L[88200];
 	int fifoIndex_L = 0;
 	bool nextSNRBlockReady_L = false;
