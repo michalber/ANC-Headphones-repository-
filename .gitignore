@@ -79,3 +79,7 @@ examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling_App.vcxproj
 examples/DemoRunner/Builds/VisualStudio2017/Active Noise Cancelling_App.vcxproj.filters
 examples/DemoRunner/Builds/VisualStudio2017/icon.ico
 examples/DemoRunner/Builds/VisualStudio2017/resources.rc
+*.obj
+*.tlog
+*.log
+*.res

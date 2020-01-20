@@ -230,7 +230,6 @@ public:
 	 ******************************************************************************/
 	ANCInstance() :Thread("NLMS Processing Thread")
     {
-		SNR.store(0);
 		setPriority(realtimeAudioPriority);
 	}
 	/***************************************************************************//**
@@ -240,10 +239,10 @@ public:
 	 * @param
 	 * @return
 	 ******************************************************************************/
-	ANCInstance(int _filterSize, float _muVal) :Thread("NLMS Processing Thread"), filterSize(_filterSize), muValue(_muVal)
-	{
-
-		SNR.store(0);
+	ANCInstance(int _filterSize, float _muVal) :Thread("NLMS Processing Thread")
+	{		
+		filterSize = _filterSize;
+		muValue = _muVal;
 		setPriority(realtimeAudioPriority);
 	}
 	/***************************************************************************//**
@@ -265,11 +264,11 @@ public:
  ******************************************************************************/
 	void run() override 
 	{
-		static ring_buffer_size_t availableSamples_L = 0;
-		static ring_buffer_size_t readedSamples_L = 0;
-		static ring_buffer_size_t availableSamples_R = 0;
-		static ring_buffer_size_t readedSamples_R = 0;
-		static ring_buffer_size_t processedSamples = 0;
+		ring_buffer_size_t availableSamples_L = 0;
+		ring_buffer_size_t readedSamples_L = 0;
+		ring_buffer_size_t availableSamples_R = 0;
+		ring_buffer_size_t readedSamples_R = 0;
+		ring_buffer_size_t processedSamples = 0;
 		volatile float buffer_L[FRAMES_PER_BUFFER * 4];
 		float *bufferPtr_L = (float *)buffer_L;
 
@@ -278,7 +277,7 @@ public:
 
 		volatile float buffer[FRAMES_PER_BUFFER * 4];
 		float *bufferPtr = (float *)buffer;
-		static int sampleDelay = 0;
+		int sampleDelay = 0;
 		int sampleCount = 48000 * 20;
 		bool resetFbLMS = false;
 
@@ -302,11 +301,11 @@ public:
 				{
 					availableSamples_L = PaUtil_GetRingBufferReadAvailable(&ringBufferIn_L);
 				}
-				if (availableSamples_L > 0)
+				if (availableSamples_L > numOfSamples)
 				{
 					//pthread_mutex_lock( &count_mutex );
-					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, bufferPtr_L, availableSamples_L);
-					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, bufferPtr_R, availableSamples_L);
+					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, bufferPtr_L, numOfSamples);
+					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, bufferPtr_R, numOfSamples);
 					//do processing here
 
 					//monoIIRHP.processSamples((float*)bufferPtr_L, readedSamples_L);
@@ -314,22 +313,31 @@ public:
 
 //					monoIIR.processSamples((float*)bufferPtr_L, readedSamples_L);
 //					monoIIR.processSamples((float*)bufferPtr_R, readedSamples_L);
+
 					sampleDelay+=readedSamples_L;
 					if (sampleDelay > FRAMES_PER_BUFFER)
 					{
 						if (sampleCount > 0)
 						{
-							FbNLMSFilter.predictSecPath(bufferPtr_L, bufferPtr, readedSamples_L);
+							//FbNLMSFilter.predictSecPath(bufferPtr_L, bufferPtr, readedSamples_L);
+							for (int n = 0; n < readedSamples_L; n++)
+							{
+								bufferPtr[n] = -.6f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (1.2f)));								
+							}
+							arm_lms_norm_f32(&lmsNorm_instanceSecPath, (const float*)bufferPtr, bufferPtr_L, Out, errOutput, readedSamples_L);
 							sampleCount -= readedSamples_L;
 						}
 						else
 						{
-							if (!resetFbLMS)
-							{
-								FbNLMSFilter.prepareForANC();
-								resetFbLMS = true;
-							}
-							FbNLMSFilter.processFbLMS(bufferPtr_L, bufferPtr, readedSamples_L);
+							//if (!resetFbLMS)
+							//{
+							//	FbNLMSFilter.prepareForANC();
+							//	resetFbLMS = true;
+							//}
+							//FbNLMSFilter.processFbLMS(bufferPtr_L, bufferPtr, readedSamples_L);
+							arm_fir_f32(&fir_instanceSecPath, (const float*)bufferPtr_R, SecPathFirOut, readedSamples_L);
+							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, bufferPtr, readedSamples_L);
+							arm_lms_anc(&lms_instance, (const float*)SecPathFirOut, bufferPtr_L, ANCFirOut, errOutput, readedSamples_L);
 						}
 					}					
 // WITH THIS WORK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -348,7 +356,7 @@ public:
 					//	readedSamples_L
 					//);
 					
-//					monoIIR.processSamples((float*)bufferPtr, readedSamples_L);
+					//monoIIR.processSamples((float*)bufferPtr, readedSamples_L);
 
 #pragma omp section
 					{
@@ -389,7 +397,6 @@ public:
         //resultsBox.insertTextAtCaret (newLine + newLine + "Starting test..." + newLine);
         //resultsBox.moveCaretToEnd();
 
-        const ScopedLock sl (lock);
         playingSampleNum = recordedSampleNum = 0;
         testIsRunning = true;
     }
@@ -411,7 +418,7 @@ public:
 	 * @return Float SNR value
 	 ******************************************************************************/
 	float getSNR() {
-		return SNR.load();
+		return 0;
 	}
 	/***************************************************************************//**
 	 * @brief Function to put new data od FIFO queue
@@ -456,7 +463,7 @@ public:
 		}
 		if (nextSNRBlockReady_L && nextSNRBlockReady_P)
 		{
-			SNR = arm_snr_f32(fifo_L, fifo_P, 88200);
+			//SNR = arm_snr_f32(fifo_L, fifo_P, 88200);
 
 			zeromem(fifo_L, sizeof(fifo_L));
 			zeromem(fifo_P, sizeof(fifo_P));
@@ -519,6 +526,10 @@ public:
 
 		arm_lms_norm_init_f32(&lmsNorm_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
 		arm_lms_init_f32(&lms_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
+		arm_lms_init_f32(&lms_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue, numOfSamples);
+		arm_lms_norm_init_f32(&lmsNorm_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue, numOfSamples);
+		arm_fir_init_f32(&fir_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathFirState, numOfSamples);
+		arm_fir_init_f32(&fir_instanceANC, filterSize, lmsNormCoeff_f32, ANCFirState, numOfSamples);
 
 		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		stereoFIR.prepare(spec);
@@ -598,7 +609,7 @@ public:
 	 * @return
 	 ******************************************************************************/
 
-	static inline ring_buffer_size_t rbs_min(ring_buffer_size_t a, ring_buffer_size_t b)
+	static ring_buffer_size_t rbs_min(ring_buffer_size_t a, ring_buffer_size_t b)
 	{
 		return (a < b) ? a : b;
 	}
@@ -616,7 +627,6 @@ public:
 		(void)numInputChannels;
 		(void)numOutputChannels;
 
-		const ScopedLock sl(lock);
 		//		auto start = std::chrono::high_resolution_clock::now();
 #if !JUCE_USE_SIMD
 
@@ -759,9 +769,9 @@ public:
 			{
 #if JUCE_USE_SIMD
 				//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
-				//memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+				memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), NLMSFilter.getCoeff(), filterSize * sizeof(float));
-				memcpy(stereoFIR.state->coefficients.begin(), FbNLMSFilter.getCoeff(), filterSize * sizeof(float));
+				//memcpy(stereoFIR.state->coefficients.begin(), FbNLMSFilter.getCoeff(), filterSize * sizeof(float));
 #else
 				memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 #endif
@@ -788,8 +798,7 @@ public:
 	 * @param Pointer to array of destiny audio
 	 * @return
 	 ******************************************************************************/
-	inline void processSamples(float *x, float *d) {
-		const ScopedLock sl(lock);
+	void processSamples(float *x, float *d) {
 
 		arm_lms_norm_f32(
 			&lmsNorm_instance,			/* LMSNorm instance */
@@ -808,9 +817,6 @@ public:
 	}
 
 private:
-    CriticalSection lock;
-
-	std::atomic<float> SNR;
 
 	int filterSize	= 1;
 	float muValue	= 1;
@@ -824,12 +830,23 @@ private:
 
 	arm_lms_norm_instance_f32 lmsNorm_instance;
 	arm_lms_instance_f32 lms_instance;
+	arm_lms_instance_f32 lms_instanceSecPath;
+	arm_lms_norm_instance_f32 lmsNorm_instanceSecPath;
+	arm_fir_instance_f32 fir_instanceSecPath;
+	arm_fir_instance_f32 fir_instanceANC;
+
 	float y[FRAMES_PER_BUFFER] = { 0.0f };								// Output data
 	float e[FRAMES_PER_BUFFER] = { 0.0f };								// Error data
 	float Out[FRAMES_PER_BUFFER] = { 0.0f };							// Output data
 	float errOutput[FRAMES_PER_BUFFER] = { 0.0f };						// Error data
 	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.0f };	// Array for NLMS algorithm
 	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
+	float SecPathlmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.0f };	// Array for NLMS algorithm
+	float SecPathlmsNormCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
+	float SecPathFirState[NUM_OF_TAPS] = { 0.0f };
+	float SecPathFirOut[FRAMES_PER_BUFFER] = { 0.0f };
+	float ANCFirState[NUM_OF_TAPS] = { 0.0f };
+	float ANCFirOut[FRAMES_PER_BUFFER] = { 0.0f };
 	float zeros[FRAMES_PER_BUFFER] = { 0.0f };
 
 	Adaptive::NLMS NLMSFilter;
@@ -867,7 +884,7 @@ private:
 	dsp::FIR::Filter<float> filter;
 #endif
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ANCInstance)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ANCInstance)
 };
 
 //==============================================================================
