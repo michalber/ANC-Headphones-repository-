@@ -1779,7 +1779,7 @@ public:
 			_samples_buffer[0] = x_reference_sample[j];
 			// Update filter coefficients			
 			nlms_filter_update((mu) *(error_sample[j]));
-			x0 = _samples_buffer.at(filterSize - 1);
+			//x0 = _samples_buffer.at(filterSize - 1);
 			// Perform filtering step, to generate new y correction sample
 			*(outputBuffer++) = fir_filter.fir_step(x_reference_sample[j]);
 		}

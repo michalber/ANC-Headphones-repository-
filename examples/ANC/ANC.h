@@ -494,7 +494,7 @@ public:
 
     void audioDeviceAboutToStart (AudioIODevice* device) override
     {
-		omp_set_num_threads(3);
+		//omp_set_num_threads(3);
 
 		numOfSamples = device->getCurrentBufferSizeSamples();
         testIsRunning = false;
