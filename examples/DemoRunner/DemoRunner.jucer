@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT name="Active Noise Cancelling" projectType="guiapp" jucerVersion="5.4.3"
-              defines="JUCE_DEMO_RUNNER=1&#10;JUCE_UNIT_TESTS=0&#10;ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC"
+              defines="JUCE_DEMO_RUNNER=1&#10;JUCE_UNIT_TESTS=0&#10;ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC&#10;JUCE_USE_SIMD=1&#10;JUCE_USE_XSHM=0&#10;JUCE_USE_XINERAMA=0&#10;"
               bundleIdentifier="com.juce.demorunner" version="0.1.0" id="yj7xMM"
               reportAppUsage="1" maxBinaryFileSize="20971520">
   <MAINGROUP id="G8kbr7" name="Active Noise Cancelling">
@@ -43,11 +43,11 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="JUCE_USE_SIMD=1&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC&#10;JUCE_DEMO_RUNNER=1&#10;JUCE_USE_ARM_NEON=1&#10;JUCE_USE_XSHM=0&#10;JUCE_USE_XINERAMA=0&#10;"
-                extraCompilerFlags="-mcpu=cortex-a53&#10;-mfpu=neon&#10;-mneon-for-32bits&#10;-mfloat-abi=hard&#10;-mtune=cortex-a53&#10;-ftree-vectorize">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="JUCE_USE_SIMD=1&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC&#10;JUCE_DEMO_RUNNER=1&#10;JUCE_USE_XSHM=0&#10;JUCE_USE_XINERAMA=0&#10;"
+                extraCompilerFlags="-march=armv8-a+crc&#10;-mfloat-abi=hard&#10;-mfpu=neon-fp-armv8&#10;-funsafe-math-optimizations&#10;-mhard-float&#10;-mlittle-endian&#10;-mtls-dialect=gnu&#10;-mtune=cortex-a53&#10;-munaligned-access&#10;-mvectorize-with-neon-quad&#10;-std=gnu++14">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug"/>
-        <CONFIGURATION name="Release" linuxArchitecture="-march=armv6"/>
+        <CONFIGURATION name="Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../../modules"/>
