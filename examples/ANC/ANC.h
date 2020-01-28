@@ -340,6 +340,7 @@ public:
 
 #pragma omp section
 					{
+						memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, (float*)bufferPtr, readedSamples_L);
 						//pthread_mutex_unlock( &count_mutex );
 					}
@@ -692,7 +693,7 @@ public:
 #pragma omp section
 			{
 				//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
-				memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+				//memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), NLMSFilter.getCoeff(), filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), FbNLMSFilter.getCoeff(), filterSize * sizeof(float));
 		}
