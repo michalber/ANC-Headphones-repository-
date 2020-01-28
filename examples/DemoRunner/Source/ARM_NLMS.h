@@ -210,7 +210,7 @@ void arm_fir_f32(
 	float x0, x1, x2, x3, x4, x5, x6, x7;               /* Temporary variables to hold state values */
 	float c0;                                           /* Temporary variable to hold coefficient value */
 
-
+	DBG("F");
   /* S->pState points to state array which contains previous frame (numTaps - 1) samples */
   /* pStateCurnt points to the location where the new input data should be written */
 	pStateCurnt = &(S->pState[(numTaps - 1U)]);
@@ -1313,6 +1313,7 @@ void arm_lms_init_f32(
 	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
 	int tapCnt, blkCnt;                       /* Loop counters */
 
+	DBG("L");
 /* Initializations of error,  difference, Coefficient update */
 	e = 0.0f;
 	w = 0.0f;
@@ -1338,39 +1339,43 @@ void arm_lms_init_f32(
 		/* Set the accumulator to zero */
 		acc = 0.0f;
 
-		/* Loop unrolling: Compute 4 taps at a time. */
-		tapCnt = numTaps >> 2U;
+		
+		///* Loop unrolling: Compute 4 taps at a time. */
+		//tapCnt = numTaps >> 2U;
 
-		while (tapCnt > 0U)
-		{
-			/* Perform the multiply-accumulate */
-			acc += (*px++) * (*pb++);
+		//while (tapCnt > 0U)
+		//{
+		//	/* Perform the multiply-accumulate */
+		//	acc += (*px++) * (*pb++);
 
-			acc += (*px++) * (*pb++);
+		//	acc += (*px++) * (*pb++);
 
-			acc += (*px++) * (*pb++);
+		//	acc += (*px++) * (*pb++);
 
-			acc += (*px++) * (*pb++);
+		//	acc += (*px++) * (*pb++);
 
-			/* Decrement loop counter */
-			tapCnt--;
-		}
+		//	/* Decrement loop counter */
+		//	tapCnt--;
+		//}
 
-		/* Loop unrolling: Compute remaining taps */
-		tapCnt = numTaps % 0x4U;
+		///* Loop unrolling: Compute remaining taps */
+		//tapCnt = numTaps % 0x4U;
 
 
-		while (tapCnt > 0U)
-		{
-			/* Perform the multiply-accumulate */
-			acc += (*px++) * (*pb++);
+		//while (tapCnt > 0U)
+		//{
+		//	/* Perform the multiply-accumulate */
+		//	acc += (*px++) * (*pb++);
 
-			/* Decrement the loop counter */
-			tapCnt--;
-		}
+		//	/* Decrement the loop counter */
+		//	tapCnt--;
+		//}
+		//
+		///* Store the result from accumulator into the destination buffer. */
+		//*pOut++ = -acc;
+		//
 
-		/* Store the result from accumulator into the destination buffer. */
-		*pOut++ = -acc;
+		*pOut++ = 0;
 
 		/* Compute and store error */
 		e = (float)*pErrIn++;

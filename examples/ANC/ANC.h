@@ -310,15 +310,14 @@ public:
 							{
 								bufferPtr[n] = -.6f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (1.2f)));								
 							}
-							arm_lms_norm_f32(&lmsNorm_instanceSecPath, (const float*)bufferPtr, (float*)bufferPtr_L, Out, errOutput, readedSamples_L);
+							arm_lms_f32(&lms_instanceSecPath, (const float*)bufferPtr, (float*)bufferPtr_L, Out, errOutput, readedSamples_L);
 							sampleCount += readedSamples_L;
 						}
 						else
-						{
-							DBG(".");
+						{							
 							arm_fir_f32(&fir_instanceSecPath, (const float*)bufferPtr_R, SecPathFirOut, readedSamples_L);
-							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);
 							arm_lms_anc(&lms_instance, (const float*)SecPathFirOut, (float*)bufferPtr_L, ANCFirOut, errOutput, readedSamples_L);
+							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);							
 						}
 					}					
 // WITH THIS WORK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

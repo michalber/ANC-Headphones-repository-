@@ -62,12 +62,12 @@ public:
                                 int numberOfSamples) override
     {
 		const ScopedLock sl(lock);
-		dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numberOfSamples);
+		/*dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numberOfSamples);
 		dcBlocker((float*)inputChannelData[1], (float*)inputChannelData[1], numberOfSamples);
 #if JUCE_LINUX
 		FloatVectorOperations::multiply((float*)inputChannelData[0], 100.0f, numberOfSamples);
 		FloatVectorOperations::multiply((float*)inputChannelData[1], 100.0f, numberOfSamples);
-#endif
+#endif*/
 		for (int i = 0; i < numberOfSamples; ++i)
 		{
 			float inputSample[2] = { 0 };
