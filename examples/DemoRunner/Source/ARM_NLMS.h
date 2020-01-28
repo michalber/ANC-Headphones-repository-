@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <chrono>
-#include <omp.h>
+//#include <omp.h>
 
 /**
   * @brief Instance structure for the floating-point normalized LMS filter.
@@ -55,7 +55,7 @@ typedef struct
  * @return none.
  */
 
-inline void arm_lms_norm_f32(
+ void arm_lms_norm_f32(
 	arm_lms_norm_instance_f32 * S,
 	const float * pSrc,
 	float * pRef,
@@ -63,7 +63,7 @@ inline void arm_lms_norm_f32(
 	float * pErr,
 	int blockSize);
 
-inline void arm_lms_f32(
+ void arm_lms_f32(
 	arm_lms_instance_f32 * S,
 	const float * pSrc,
 	float * pRef,
@@ -71,7 +71,7 @@ inline void arm_lms_f32(
 	float * pErr,
 	int blockSize);
 
-inline void arm_lms_norm_anc(
+ void arm_lms_norm_anc(
 	arm_lms_norm_instance_f32 * S,
 	const float * pSrc,
 	float * pErrIn,
@@ -79,7 +79,7 @@ inline void arm_lms_norm_anc(
 	float * pErr,
 	int blockSize);
 
-inline void arm_lms_anc(
+ void arm_lms_anc(
 	arm_lms_instance_f32 * S,
 	const float * pSrc,
 	float * pErrIn,
@@ -755,7 +755,7 @@ void arm_lms_init_f32(
 	 * @return none.
 	 */
 
-inline void arm_lms_norm_f32(
+ void arm_lms_norm_f32(
 	arm_lms_norm_instance_f32 * S,
 	const float * pSrc,
 	float * pRef,
@@ -938,7 +938,7 @@ inline void arm_lms_norm_f32(
 		tapCnt--;
 	}
 }
-inline void arm_lms_f32(
+ void arm_lms_f32(
 	arm_lms_instance_f32 * S,
 	const float * pSrc,
 	float * pRef,
@@ -1109,7 +1109,7 @@ inline void arm_lms_f32(
    * @} end of LMS_NORM group
    */
 
-inline void arm_lms_norm_anc(
+ void arm_lms_norm_anc(
 	arm_lms_norm_instance_f32 * S,
 	const float * pSrc,
 	float * pErrIn,
@@ -1218,16 +1218,16 @@ inline void arm_lms_norm_anc(
 		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
 			/* Decrement loop counter */
@@ -1240,7 +1240,7 @@ inline void arm_lms_norm_anc(
 		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
 			/* Decrement loop counter */
@@ -1295,7 +1295,7 @@ inline void arm_lms_norm_anc(
 
 }
 
-inline void arm_lms_anc(
+ void arm_lms_anc(
 	arm_lms_instance_f32 * S,
 	const float * pSrc,
 	float * pErrIn,
@@ -1393,16 +1393,16 @@ inline void arm_lms_anc(
 		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
 			/* Decrement loop counter */
@@ -1416,7 +1416,7 @@ inline void arm_lms_anc(
 		while (tapCnt > 0U)
 		{
 			/* Perform the multiply-accumulate */
-			*pb = (*pb) * 0.999 + w * (*px++);
+			*pb = (*pb) * 0.999f + w * (*px++);
 			pb++;
 
 			/* Decrement loop counter */
@@ -1825,7 +1825,7 @@ MATLAB code for my NLMS
 #include <vector>
 #include <string.h>
 #include "config.h"
-#include <omp.h>
+//#include <omp.h>
 
 namespace Adaptive {
 	class NLMS
@@ -1868,11 +1868,11 @@ namespace Adaptive {
 		@version 0.1 05-07-2019
 	*/
 
-	NLMS::NLMS() : NumOfTaps(100), mu(0.5), a(0.0001)
+	NLMS::NLMS() : NumOfTaps(100), mu(0.5f), a(0.0001f)
 	{
-		memset(y, 0, FRAMES_PER_BUFFER);
-		memset(xx, 0, NumOfTaps);
-		memset(w1, 0, NumOfTaps);
+		memset(y, 0.0f, FRAMES_PER_BUFFER);
+		memset(xx, 0.0f, NumOfTaps);
+		memset(w1, 0.0f, NumOfTaps);
 		for (int i = 0; i < NumOfTaps; i++)
 		{
 			w1[i] = -1.0f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (2.0f)));
@@ -2060,7 +2060,7 @@ namespace Adaptive {
 		float r;
 		//float d;  // Error Mic Input
 		float mu; // Step Size
-		float muTrain = 0.0000005; // Step Size
+		float muTrain = 0.0000005f; // Step Size
 		float x[NUM_OF_TAPS];  // Generated Noise Queue
 		//float w[NUM_OF_TAPS];  // Secondary Path Coefficient
 		float muEX[NUM_OF_TAPS]; // mu*e*x Queue
@@ -2103,13 +2103,13 @@ namespace Adaptive {
 	*/
 	FbLMS::FbLMS(int filterSize, float stepSize) : NumOfTaps(filterSize), mu(stepSize)
 	{
-		memset(c, 0.00001, sizeof(float)*NUM_OF_TAPS);
-		memset(muedf, 0.00001, sizeof(float)*NUM_OF_TAPS);
-		memset(yQueue, 0.00001, sizeof(float)*NUM_OF_TAPS);
-		memset(dQueue, 0.00001, sizeof(float)*NUM_OF_TAPS);
-		memset(dfQueue, 0.00001, sizeof(float)*NUM_OF_TAPS);
-		memset(x, 0.00001, sizeof(float)*NUM_OF_TAPS);
-		memset(muEX, 0.00001, sizeof(float)*NUM_OF_TAPS);
+		memset(c, 0.00001f, sizeof(float)*NUM_OF_TAPS);
+		memset(muedf, 0.00001f, sizeof(float)*NUM_OF_TAPS);
+		memset(yQueue, 0.00001f, sizeof(float)*NUM_OF_TAPS);
+		memset(dQueue, 0.00001f, sizeof(float)*NUM_OF_TAPS);
+		memset(dfQueue, 0.00001f, sizeof(float)*NUM_OF_TAPS);
+		memset(x, 0.00001f, sizeof(float)*NUM_OF_TAPS);
+		memset(muEX, 0.00001f, sizeof(float)*NUM_OF_TAPS);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------

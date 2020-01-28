@@ -108,7 +108,7 @@ public:
 		(void)outputChannelData;
 
 
-//		const ScopedLock sl(lock);
+		const ScopedLock sl(lock);
 
 		for (int i = 0; i < numberOfSamples; ++i)
 		{

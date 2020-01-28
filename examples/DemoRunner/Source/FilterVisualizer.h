@@ -25,8 +25,8 @@ class  FilterVisualizer :  public Component,
     struct Settings {
         float fMin = 20.0f;    // minimum displayed frequency
         float fMax = 20000.0f; // maximum displayed frequency
-        float dbMin = -50.0f;  // min displayed dB
-        float dbMax = 30.0f;   // max displayed dB
+        float dbMin = -80.0f;  // min displayed dB
+        float dbMax = 80.0f;   // max displayed dB
         float gridDiv = 5.0f;  // how many dB per divisions (between grid lines)
         bool gainHandleLin = false; // are the filter gain sliders linear?
     };

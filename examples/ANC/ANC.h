@@ -39,7 +39,7 @@
 #include "../DemoRunner/Source/pa_ringbuffer.h"
 
 #include <future>
-#include <omp.h>
+//#include <omp.h>
 #include <string.h>
 
 //==============================================================================
@@ -264,48 +264,35 @@ public:
  ******************************************************************************/
 	void run() override 
 	{
-		ring_buffer_size_t availableSamples_L = 0;
-		ring_buffer_size_t readedSamples_L = 0;
-		ring_buffer_size_t availableSamples_R = 0;
-		ring_buffer_size_t readedSamples_R = 0;
-		ring_buffer_size_t processedSamples = 0;
+		volatile ring_buffer_size_t availableSamples_L = 0;
+		volatile ring_buffer_size_t readedSamples_L = 0;
+		volatile ring_buffer_size_t availableSamples_R = 0;
+		volatile ring_buffer_size_t readedSamples_R = 0;
+		volatile ring_buffer_size_t processedSamples = 0;
 		volatile float buffer_L[FRAMES_PER_BUFFER * 4];
-		float *bufferPtr_L = (float *)buffer_L;
+		volatile float *bufferPtr_L = (float *)buffer_L;
 
 		volatile float buffer_R[FRAMES_PER_BUFFER * 4];
-		float *bufferPtr_R = (float *)buffer_R;
+		volatile float *bufferPtr_R = (float *)buffer_R;
 
 		volatile float buffer[FRAMES_PER_BUFFER * 4];
-		float *bufferPtr = (float *)buffer;
-		int sampleDelay = 0;
-		int sampleCount = 48000 * 20;
-		bool resetFbLMS = false;
+		volatile float *bufferPtr = (float *)buffer;
+		volatile int sampleDelay = 0;
+		volatile int sampleCount = 0;		
 
 		while (!threadShouldExit())
 		{
-			//			wait(-1);
-			////			auto start = std::chrono::high_resolution_clock::now();
-			//#if JUCE_USE_SIMD
-			//			processSamples((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0));
-			//#else
-			//			processSamples((float*)inData.getReadPointer(1), (float*)inData.getReadPointer(0));
-			//#endif
-			////			SNR = arm_snr_f32((float*)inBlock.getChannelPointer(1), (float*)inBlock.getChannelPointer(0), numOfSamples);
-			////			auto end = std::chrono::high_resolution_clock::now();
-			////			auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();	
-
-
 #pragma omp parallel sections
 			{
 #pragma omp section
 				{
 					availableSamples_L = PaUtil_GetRingBufferReadAvailable(&ringBufferIn_L);
 				}
-				if (availableSamples_L > numOfSamples)
+				if (availableSamples_L >= numOfSamples)
 				{
 					//pthread_mutex_lock( &count_mutex );
-					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, bufferPtr_L, numOfSamples);
-					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, bufferPtr_R, numOfSamples);
+					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, (float*)bufferPtr_L, availableSamples_L);
+					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, (float*)bufferPtr_R, availableSamples_L);
 					//do processing here
 
 					//monoIIRHP.processSamples((float*)bufferPtr_L, readedSamples_L);
@@ -317,27 +304,21 @@ public:
 					sampleDelay+=readedSamples_L;
 					if (sampleDelay > FRAMES_PER_BUFFER)
 					{
-						if (sampleCount > 0)
-						{
-							//FbNLMSFilter.predictSecPath(bufferPtr_L, bufferPtr, readedSamples_L);
+						if (sampleCount < (48000 * 20))
+						{							
 							for (int n = 0; n < readedSamples_L; n++)
 							{
 								bufferPtr[n] = -.6f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (1.2f)));								
 							}
-							arm_lms_norm_f32(&lmsNorm_instanceSecPath, (const float*)bufferPtr, bufferPtr_L, Out, errOutput, readedSamples_L);
-							sampleCount -= readedSamples_L;
+							arm_lms_norm_f32(&lmsNorm_instanceSecPath, (const float*)bufferPtr, (float*)bufferPtr_L, Out, errOutput, readedSamples_L);
+							sampleCount += readedSamples_L;
 						}
 						else
 						{
-							//if (!resetFbLMS)
-							//{
-							//	FbNLMSFilter.prepareForANC();
-							//	resetFbLMS = true;
-							//}
-							//FbNLMSFilter.processFbLMS(bufferPtr_L, bufferPtr, readedSamples_L);
+							DBG(".");
 							arm_fir_f32(&fir_instanceSecPath, (const float*)bufferPtr_R, SecPathFirOut, readedSamples_L);
-							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, bufferPtr, readedSamples_L);
-							arm_lms_anc(&lms_instance, (const float*)SecPathFirOut, bufferPtr_L, ANCFirOut, errOutput, readedSamples_L);
+							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);
+							arm_lms_anc(&lms_instance, (const float*)SecPathFirOut, (float*)bufferPtr_L, ANCFirOut, errOutput, readedSamples_L);
 						}
 					}					
 // WITH THIS WORK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -360,7 +341,7 @@ public:
 
 #pragma omp section
 					{
-						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, bufferPtr, readedSamples_L);
+						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, (float*)bufferPtr, readedSamples_L);
 						//pthread_mutex_unlock( &count_mutex );
 					}
 				}
@@ -526,8 +507,8 @@ public:
 
 		arm_lms_norm_init_f32(&lmsNorm_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
 		arm_lms_init_f32(&lms_instance, filterSize, lmsNormCoeff_f32, lmsStateF32, muValue, numOfSamples);
-		arm_lms_init_f32(&lms_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue, numOfSamples);
-		arm_lms_norm_init_f32(&lmsNorm_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue, numOfSamples);
+		arm_lms_init_f32(&lms_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue / 10.0f, numOfSamples);
+		arm_lms_norm_init_f32(&lmsNorm_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue / 10.0f, numOfSamples);
 		arm_fir_init_f32(&fir_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathFirState, numOfSamples);
 		arm_fir_init_f32(&fir_instanceANC, filterSize, lmsNormCoeff_f32, ANCFirState, numOfSamples);
 
@@ -537,10 +518,10 @@ public:
 		stereoIIR.state = dsp::IIR::Coefficients<float>::makeLowPass(sampleRate, 14000.0f, 20);
 		stereoIIR.prepare(spec);
 
-		monoIIR.setCoefficients((IIRCoefficients::makeLowPass(sampleRate, 2000, 0.7)));
-		monoIIRHP.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, 30, 0.7));
+		monoIIR.setCoefficients((IIRCoefficients::makeLowPass(sampleRate, 2000, 0.7f)));
+		monoIIRHP.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, 30, 0.7f));
 
-		NLMSFilter = Adaptive::NLMS(filterSize, muValue, 0.00000001);
+		NLMSFilter = Adaptive::NLMS(filterSize, muValue, 0.00000001f);
 		FbNLMSFilter = Adaptive::FbLMS(filterSize, muValue);
 
 
@@ -614,103 +595,49 @@ public:
 		return (a < b) ? a : b;
 	}
 
+	void dcBlocker(float *in, float *out, int blockSize)
+	{
+		for (int i = 0; i < blockSize; i++)
+		{
+			out[i] = in[i] - xm1 + 0.995f * ym1;
+			xm1 = in[i];
+			ym1 = out[i];
+		}
+	}
+
 	void audioDeviceIOCallback(const float** inputChannelData, int numInputChannels,
 		float** outputChannelData, int numOutputChannels, int numSamples) override
 	{
-		static ring_buffer_size_t availableSamples = 0;
-		static ring_buffer_size_t readedSamples = 0;
-		static ring_buffer_size_t processedSamples = 0;
-		volatile float buffer[FRAMES_PER_BUFFER * 4];
+		static volatile ring_buffer_size_t availableSamples = 0;
+		static volatile ring_buffer_size_t readedSamples = 0;
+		static volatile ring_buffer_size_t processedSamples = 0;
+		static volatile float buffer[FRAMES_PER_BUFFER * 4];
 		float *bufferPtr = (float *)buffer;
 
+		const ScopedLock s1(lock);
 
 		(void)numInputChannels;
 		(void)numOutputChannels;
 
-		//		auto start = std::chrono::high_resolution_clock::now();
-#if !JUCE_USE_SIMD
-
-		auto* playBufferL = outData.getReadPointer(0);
-		auto* playBufferR = outData.getReadPointer(1);
-		auto* recBufferL = inData.getWritePointer(0);
-		auto* recBufferR = inData.getWritePointer(1);
-
-		for (int i = 0; i < numSamples; ++i)
-		{
-			if (recordedSampleNum < inData.getNumSamples()) {
-				//				for (int j = 0; j < numInputChannels; j++) {
-				//					outputChannelData[j][i] = inputChannelData[j][i];					
-				//				}
-				recBufferL[recordedSampleNum] = inputChannelData[0][i];
-				recBufferR[recordedSampleNum] = inputChannelData[1][i];
-			}
-			++recordedSampleNum;
-
-			auto outputSampleL = (playingSampleNum <= outData.getNumSamples()) ? playBufferL[playingSampleNum] : 0.0f;
-			auto outputSampleR = (playingSampleNum <= outData.getNumSamples()) ? playBufferR[playingSampleNum] : 0.0f;
-
-			outputChannelData[0][i] = (volume) * (filter.processSample(inputChannelData[0][i]));
-			outputChannelData[1][i] = (volume) * (filter.processSample(inputChannelData[1][i]));
-
-			//					outputChannelData[0][i] = inputChannelData[0][i];
-			//					outputChannelData[1][i] = inputChannelData[1][i];
-
-			++playingSampleNum;
-		}
-		notify();
-
-		recordedSampleNum = 0;
-		playingSampleNum = 0;
-#else
-//		inBlock	 = dsp::AudioBlock<float>((float*const*)inputChannelData, (size_t)numInputChannels, (size_t)numOfSamples);
-//		outBlock = dsp::AudioBlock<float>((float*const*)outputChannelData, (size_t)numOutputChannels, (size_t)numOfSamples);
-//		auto* inout = channelPointers.getData();
-//		auto n = inBlock.getNumSamples();
-//	
-//		pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
-//		pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
-//
-//		for (size_t ch = 0; ch < dsp::SIMDRegister<float>::size(); ++ch)
-//			inout[ch] = (ch < numInputChannels ? const_cast<float*> (inBlock.getChannelPointer(ch)) : zero.getChannelPointer(ch));
-//		
-//		AudioDataConverters::interleaveSamples(inout, reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-//		static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-//				
-//		stereoFIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));		
-//		
-//		notify();
-//
-////		stereoIIR.process(dsp::ProcessContextReplacing<dsp::SIMDRegister<float>>(interleaved));
-//
-//		for (size_t ch = 0; ch < inBlock.getNumChannels(); ++ch)
-//			inout[ch] = outBlock.getChannelPointer(ch);
-//			
-//		AudioDataConverters::deinterleaveSamples(reinterpret_cast<float*> (interleaved.getChannelPointer(0)),
-//			const_cast<float**> (inout),
-//			static_cast<int> (n), static_cast<int> (dsp::SIMDRegister<float>::size()));
-//
-//		FloatVectorOperations::copy((float*)inout[1], (float*)inout[0], numOfSamples);
-//
-//		FloatVectorOperations::multiply((float*)inout[0], volume, numSamples);
-//		FloatVectorOperations::multiply((float*)inout[1], volume, numSamples);
-
-
-
 //=========================================================================================================================================================	
 #pragma omp parallel sections
 		{
+			dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numSamples);
+			dcBlocker((float*)inputChannelData[1], (float*)inputChannelData[1], numSamples);
+#if JUCE_LINUX
+			FloatVectorOperations::multiply((float*)inputChannelData[0], 100.0f, numSamples);
+			FloatVectorOperations::multiply((float*)inputChannelData[1], 100.0f, numSamples);
+#endif
+			const float *rptr_L = (const float *)inputChannelData[0];
+			ring_buffer_size_t elementsWriteable_L = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_L);
+			ring_buffer_size_t elementsToWrite_L = rbs_min(elementsWriteable_L, (ring_buffer_size_t)(numSamples));
+			PaUtil_WriteRingBuffer(&ringBufferIn_L, rptr_L, elementsToWrite_L);
 
+			const float *rptr_R = (const float *)inputChannelData[1];
+			ring_buffer_size_t elementsWriteable_R = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_R);
+			ring_buffer_size_t elementsToWrite_R = rbs_min(elementsWriteable_R, (ring_buffer_size_t)(numSamples));
+			PaUtil_WriteRingBuffer(&ringBufferIn_R, rptr_R, elementsToWrite_R);
 
-				const float *rptr_L = (const float *)inputChannelData[0];
-				ring_buffer_size_t elementsWriteable_L = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_L);
-				ring_buffer_size_t elementsToWrite_L = rbs_min(elementsWriteable_L, (ring_buffer_size_t)(numSamples));
-				PaUtil_WriteRingBuffer(&ringBufferIn_L, rptr_L, elementsToWrite_L);
-
-				const float *rptr_R = (const float *)inputChannelData[1];
-				ring_buffer_size_t elementsWriteable_R = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_R);
-				ring_buffer_size_t elementsToWrite_R = rbs_min(elementsWriteable_R, (ring_buffer_size_t)(numSamples));
-				PaUtil_WriteRingBuffer(&ringBufferIn_R, rptr_R, elementsToWrite_R);
-			
 #pragma omp section
 			{
 				float *wptr = (float *)outputChannelData[0];
@@ -721,15 +648,13 @@ public:
 			if (readedSamples < numOfSamples)
 			{
 #pragma omp parallel for shedule(static, 4)
-				for (int i = readedSamples; i < numOfSamples; i ++)
+				for (int i = readedSamples; i < numOfSamples; i++)
 				{
 					outputChannelData[0][i] = 0;
 				}
 			}
 		}
 		
-
-
 #pragma omp parallel sections 
 		{
 #pragma omp section
@@ -767,15 +692,11 @@ public:
 
 #pragma omp section
 			{
-#if JUCE_USE_SIMD
 				//		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, NUM_OF_TAPS);
 				memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), NLMSFilter.getCoeff(), filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), FbNLMSFilter.getCoeff(), filterSize * sizeof(float));
-#else
-				memcpy(coeffs.coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
-#endif
-			}
+		}
 #pragma omp section
 			{
 				FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);				
@@ -783,7 +704,6 @@ public:
 				FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
 			}
 			//=========================================================================================================================================================
-#endif
 //		auto end = std::chrono::high_resolution_clock::now();
 //		auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 		}
@@ -817,6 +737,7 @@ public:
 	}
 
 private:
+	CriticalSection lock;
 
 	int filterSize	= 1;
 	float muValue	= 1;
@@ -848,6 +769,8 @@ private:
 	float ANCFirState[NUM_OF_TAPS] = { 0.0f };
 	float ANCFirOut[FRAMES_PER_BUFFER] = { 0.0f };
 	float zeros[FRAMES_PER_BUFFER] = { 0.0f };
+	float xm1 = 0;
+	float ym1 = 0;
 
 	Adaptive::NLMS NLMSFilter;
 	Adaptive::FbLMS FbNLMSFilter;
@@ -1083,7 +1006,7 @@ public:
 	{
 		if (slider == &volumeSlider) {
 			if (ANC.get() != nullptr) {
-				ANC->setVolume(volumeSlider.getValue());
+				ANC->setVolume((float)volumeSlider.getValue());
 			}
 		}
 		else if (slider == &FFTScaleSlider) {

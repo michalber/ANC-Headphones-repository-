@@ -46,12 +46,28 @@ public:
         clear();
     }
 
+	void dcBlocker(float *in, float *out, int blockSize)
+	{
+		static float xm1, ym1;
+
+		for (int i = 0; i < blockSize; i++)
+		{
+			out[i] = in[i] - xm1 + 0.995f * ym1;
+			xm1 = in[i];
+			ym1 = out[i];
+		}
+	}
     void audioDeviceIOCallback (const float** inputChannelData, int numInputChannels,
                                 float** outputChannelData, int numOutputChannels,
                                 int numberOfSamples) override
     {
-//		const ScopedLock sl(lock);
-
+		const ScopedLock sl(lock);
+		dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numberOfSamples);
+		dcBlocker((float*)inputChannelData[1], (float*)inputChannelData[1], numberOfSamples);
+#if JUCE_LINUX
+		FloatVectorOperations::multiply((float*)inputChannelData[0], 100.0f, numberOfSamples);
+		FloatVectorOperations::multiply((float*)inputChannelData[1], 100.0f, numberOfSamples);
+#endif
 		for (int i = 0; i < numberOfSamples; ++i)
 		{
 			float inputSample[2] = { 0 };
