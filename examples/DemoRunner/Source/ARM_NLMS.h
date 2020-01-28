@@ -210,7 +210,6 @@ void arm_fir_f32(
 	float x0, x1, x2, x3, x4, x5, x6, x7;               /* Temporary variables to hold state values */
 	float c0;                                           /* Temporary variable to hold coefficient value */
 
-	DBG("F");
   /* S->pState points to state array which contains previous frame (numTaps - 1) samples */
   /* pStateCurnt points to the location where the new input data should be written */
 	pStateCurnt = &(S->pState[(numTaps - 1U)]);
@@ -946,15 +945,15 @@ void arm_lms_init_f32(
 	float * pErr,
 	int blockSize)
 {
-	float *pState = S->pState;                 /* State pointer */
-	float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
-	float *pStateCurnt;                        /* Points to the current sample of the state */
-	float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
-	float mu = S->mu;                          /* Adaptive factor */
-	float acc, e;                              /* Accumulator, error */
-	float w;                                   /* Weight factor */
-	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
-	int tapCnt, blkCnt;                       /* Loop counters */
+	volatile float *pState = S->pState;                 /* State pointer */
+	volatile float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
+	volatile float *pStateCurnt;                        /* Points to the current sample of the state */
+	volatile float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
+	volatile float mu = S->mu;                          /* Adaptive factor */
+	volatile float acc, e;                              /* Accumulator, error */
+	volatile float w;                                   /* Weight factor */
+	volatile int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
+	volatile int tapCnt, blkCnt;                       /* Loop counters */
 
 /* Initializations of error,  difference, Coefficient update */
 	e = 0.0f;
@@ -1303,17 +1302,16 @@ void arm_lms_init_f32(
 	float * pErr,
 	int blockSize)
 {
-	float *pState = S->pState;                 /* State pointer */
-	float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
-	float *pStateCurnt;                        /* Points to the current sample of the state */
-	float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
-	float mu = S->mu;                          /* Adaptive factor */
-	float acc, e;                              /* Accumulator, error */
-	float w;                                   /* Weight factor */
-	int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
-	int tapCnt, blkCnt;                       /* Loop counters */
+	volatile float *pState = S->pState;                 /* State pointer */
+	volatile float *pCoeffs = S->pCoeffs;               /* Coefficient pointer */
+	volatile float *pStateCurnt;                        /* Points to the current sample of the state */
+	volatile float *px, *pb;                            /* Temporary pointers for state and coefficient buffers */
+	volatile float mu = S->mu;                          /* Adaptive factor */
+	volatile float acc, e;                              /* Accumulator, error */
+	volatile float w;                                   /* Weight factor */
+	volatile int numTaps = S->numTaps;                 /* Number of filter coefficients in the filter */
+	volatile int tapCnt, blkCnt;                       /* Loop counters */
 
-	DBG("L");
 /* Initializations of error,  difference, Coefficient update */
 	e = 0.0f;
 	w = 0.0f;

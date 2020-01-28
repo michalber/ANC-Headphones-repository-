@@ -622,12 +622,12 @@ public:
 //=========================================================================================================================================================	
 #pragma omp parallel sections
 		{
-			dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numSamples);
-			dcBlocker((float*)inputChannelData[1], (float*)inputChannelData[1], numSamples);
-#if JUCE_LINUX
-			FloatVectorOperations::multiply((float*)inputChannelData[0], 100.0f, numSamples);
-			FloatVectorOperations::multiply((float*)inputChannelData[1], 100.0f, numSamples);
-#endif
+//			dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numSamples);
+//			dcBlocker((float*)inputChannelData[1], (float*)inputChannelData[1], numSamples);
+//#if JUCE_LINUX
+//			FloatVectorOperations::multiply((float*)inputChannelData[0], 50.0f, numSamples);
+//			FloatVectorOperations::multiply((float*)inputChannelData[1], 50.0f, numSamples);
+//#endif
 			const float *rptr_L = (const float *)inputChannelData[0];
 			ring_buffer_size_t elementsWriteable_L = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_L);
 			ring_buffer_size_t elementsToWrite_L = rbs_min(elementsWriteable_L, (ring_buffer_size_t)(numSamples));
