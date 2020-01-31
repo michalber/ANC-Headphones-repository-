@@ -836,7 +836,7 @@ void arm_lms_init_f32(
 		}
 
 		/* The result in the accumulator, store in the destination buffer. */
-		*pOut++ = -sum;
+		*pOut++ = sum;
 
 		/* Compute and store error */
 		d = (float)(*pRef++);
@@ -1338,42 +1338,39 @@ void arm_lms_init_f32(
 		acc = 0.0f;
 
 		
-		///* Loop unrolling: Compute 4 taps at a time. */
-		//tapCnt = numTaps >> 2U;
+		/* Loop unrolling: Compute 4 taps at a time. */
+		tapCnt = numTaps >> 2U;
 
-		//while (tapCnt > 0U)
-		//{
-		//	/* Perform the multiply-accumulate */
-		//	acc += (*px++) * (*pb++);
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
 
-		//	acc += (*px++) * (*pb++);
+			acc += (*px++) * (*pb++);
 
-		//	acc += (*px++) * (*pb++);
+			acc += (*px++) * (*pb++);
 
-		//	acc += (*px++) * (*pb++);
+			acc += (*px++) * (*pb++);
 
-		//	/* Decrement loop counter */
-		//	tapCnt--;
-		//}
+			/* Decrement loop counter */
+			tapCnt--;
+		}
 
-		///* Loop unrolling: Compute remaining taps */
-		//tapCnt = numTaps % 0x4U;
+		/* Loop unrolling: Compute remaining taps */
+		tapCnt = numTaps % 0x4U;
 
 
-		//while (tapCnt > 0U)
-		//{
-		//	/* Perform the multiply-accumulate */
-		//	acc += (*px++) * (*pb++);
+		while (tapCnt > 0U)
+		{
+			/* Perform the multiply-accumulate */
+			acc += (*px++) * (*pb++);
 
-		//	/* Decrement the loop counter */
-		//	tapCnt--;
-		//}
-		//
-		///* Store the result from accumulator into the destination buffer. */
-		//*pOut++ = -acc;
-		//
-
-		*pOut++ = 0;
+			/* Decrement the loop counter */
+			tapCnt--;
+		}
+		
+		/* Store the result from accumulator into the destination buffer. */
+		*pOut++ = acc;
 
 		/* Compute and store error */
 		e = (float)*pErrIn++;

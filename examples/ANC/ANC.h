@@ -278,7 +278,7 @@ public:
 		volatile float buffer[FRAMES_PER_BUFFER * 4];
 		volatile float *bufferPtr = (float *)buffer;
 		volatile int sampleDelay = 0;
-		volatile int sampleCount = 0;		
+		volatile int sampleCount = 48000 * 20;
 
 		while (!threadShouldExit())
 		{
@@ -291,8 +291,8 @@ public:
 				if (availableSamples_L >= numOfSamples)
 				{
 					//pthread_mutex_lock( &count_mutex );
-					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, (float*)bufferPtr_L, availableSamples_L);
-					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, (float*)bufferPtr_R, availableSamples_L);
+					readedSamples_L = PaUtil_ReadRingBuffer(&ringBufferIn_L, (float*)bufferPtr_L, numOfSamples);
+					readedSamples_R = PaUtil_ReadRingBuffer(&ringBufferIn_R, (float*)bufferPtr_R, numOfSamples);
 					//do processing here
 
 					//monoIIRHP.processSamples((float*)bufferPtr_L, readedSamples_L);
@@ -301,25 +301,25 @@ public:
 //					monoIIR.processSamples((float*)bufferPtr_L, readedSamples_L);
 //					monoIIR.processSamples((float*)bufferPtr_R, readedSamples_L);
 
-					sampleDelay+=readedSamples_L;
+					sampleDelay += readedSamples_L;
 					if (sampleDelay > FRAMES_PER_BUFFER)
 					{
-						if (sampleCount < (48000 * 20))
-						{							
+						if (sampleCount > 0)
+						{
 							for (int n = 0; n < readedSamples_L; n++)
 							{
-								bufferPtr[n] = -.6f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (1.2f)));								
+								bufferPtr[n] = -.6f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (1.2f)));
 							}
 							arm_lms_f32(&lms_instanceSecPath, (const float*)bufferPtr, (float*)bufferPtr_L, Out, errOutput, readedSamples_L);
-							sampleCount += readedSamples_L;
+							sampleCount -= readedSamples_L;
 						}
 						else
-						{							
+						{
 							arm_fir_f32(&fir_instanceSecPath, (const float*)bufferPtr_R, SecPathFirOut, readedSamples_L);
+							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);
 							arm_lms_anc(&lms_instance, (const float*)SecPathFirOut, (float*)bufferPtr_L, ANCFirOut, errOutput, readedSamples_L);
-							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);							
 						}
-					}					
+					}
 // WITH THIS WORK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 					//arm_lms_norm_f32(
 					//	&lmsNorm_instance,			/* LMSNorm instance */
@@ -341,6 +341,7 @@ public:
 #pragma omp section
 					{
 						memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
+						memcpy(lmsNormFIRCoeff_f32, lmsNormCoeff_f32, filterSize * sizeof(float));
 						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, (float*)bufferPtr, readedSamples_L);
 						//pthread_mutex_unlock( &count_mutex );
 					}
@@ -510,7 +511,7 @@ public:
 		arm_lms_init_f32(&lms_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue / 10.0f, numOfSamples);
 		arm_lms_norm_init_f32(&lmsNorm_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathlmsStateF32, muValue / 10.0f, numOfSamples);
 		arm_fir_init_f32(&fir_instanceSecPath, filterSize, SecPathlmsNormCoeff_f32, SecPathFirState, numOfSamples);
-		arm_fir_init_f32(&fir_instanceANC, filterSize, lmsNormCoeff_f32, ANCFirState, numOfSamples);
+		arm_fir_init_f32(&fir_instanceANC, filterSize, lmsNormFIRCoeff_f32, ANCFirState, numOfSamples);
 
 		stereoFIR.state = new dsp::FIR::Coefficients<float>((const float*)lmsNormCoeff_f32, filterSize);
 		stereoFIR.prepare(spec);
@@ -760,8 +761,10 @@ private:
 	float e[FRAMES_PER_BUFFER] = { 0.0f };								// Error data
 	float Out[FRAMES_PER_BUFFER] = { 0.0f };							// Output data
 	float errOutput[FRAMES_PER_BUFFER] = { 0.0f };						// Error data
+	float errOutput2[FRAMES_PER_BUFFER] = { 0.0f };						// Error data
 	float lmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.0f };	// Array for NLMS algorithm
 	float lmsNormCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
+	float lmsNormFIRCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
 	float SecPathlmsStateF32[NUM_OF_TAPS + FRAMES_PER_BUFFER] = { 0.0f };	// Array for NLMS algorithm
 	float SecPathlmsNormCoeff_f32[NUM_OF_TAPS] = { 0.0f };					// NLMS Coefficients
 	float SecPathFirState[NUM_OF_TAPS] = { 0.0f };
