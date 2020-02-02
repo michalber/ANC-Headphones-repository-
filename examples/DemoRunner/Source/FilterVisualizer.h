@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include "../examples/Assets/DemoUtilities.h"
+//#include "../examples/Assets/DemoUtilities.h"
+#include "../../../examples/Assets/DemoUtilities.h"
 /***************************************************************************//**
  * @brief 
  * @author Micha³ Berdzik

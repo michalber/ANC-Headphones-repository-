@@ -701,7 +701,7 @@ public:
 #pragma omp section
 			{
 				FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);				
-				//monoIIR.processSamples(outputChannelData[0], numSamples);
+				monoIIR.processSamples(outputChannelData[0], numSamples);
 				FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
 			}
 			//=========================================================================================================================================================

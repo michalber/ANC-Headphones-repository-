@@ -47,7 +47,7 @@
 
 #pragma once
 
-#include "../examples/Assets/DemoUtilities.h"
+#include "../../../examples/Assets/DemoUtilities.h"
 
 //==============================================================================
 class AnalyserComponent : public AudioIODeviceCallback,	

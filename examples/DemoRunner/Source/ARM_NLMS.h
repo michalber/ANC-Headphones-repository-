@@ -1370,10 +1370,10 @@ void arm_lms_init_f32(
 		}
 		
 		/* Store the result from accumulator into the destination buffer. */
-		*pOut++ = acc;
+		*pOut++ = -acc;
 
 		/* Compute and store error */
-		e = (float)*pErrIn++;
+		e = -(float)*pErrIn++;
 		*pErr++ = e;
 
 		/* Calculation of Weighting factor for updating filter coefficients */
