@@ -308,15 +308,15 @@ public:
 						{
 							for (int n = 0; n < readedSamples_L; n++)
 							{
-								bufferPtr[n] = -.6f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (1.2f)));
+								bufferPtr[n] = -.2f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (0.4f)));
 							}
-							arm_lms_f32(&lms_instanceSecPath, (const float*)bufferPtr, (float*)bufferPtr_L, Out, errOutput, readedSamples_L);
+							arm_lms_norm_f32(&lmsNorm_instanceSecPath, (const float*)bufferPtr, (float*)bufferPtr_L, Out, errOutput, readedSamples_L);
 							sampleCount -= readedSamples_L;
 						}
 						else
 						{
 							arm_fir_f32(&fir_instanceSecPath, (const float*)bufferPtr_R, SecPathFirOut, readedSamples_L);
-							arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);
+							//arm_fir_f32(&fir_instanceANC, (const float*)bufferPtr_R, (float*)bufferPtr, readedSamples_L);
 							arm_lms_anc(&lms_instance, (const float*)SecPathFirOut, (float*)bufferPtr_L, ANCFirOut, errOutput, readedSamples_L);
 						}
 					}
@@ -342,7 +342,7 @@ public:
 					{
 						memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 						memcpy(lmsNormFIRCoeff_f32, lmsNormCoeff_f32, filterSize * sizeof(float));
-						processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, (float*)bufferPtr, readedSamples_L);
+						//processedSamples = PaUtil_WriteRingBuffer(&ringBufferOut, (float*)bufferPtr, readedSamples_L);
 						//pthread_mutex_unlock( &count_mutex );
 					}
 				}
@@ -613,6 +613,8 @@ public:
 		static volatile ring_buffer_size_t readedSamples = 0;
 		static volatile ring_buffer_size_t processedSamples = 0;
 		static volatile float buffer[FRAMES_PER_BUFFER * 4];
+		volatile static int sampleDelayCall = 0;
+		volatile static int sampleCountCall = 48000 * 20;
 		float *bufferPtr = (float *)buffer;
 
 		const ScopedLock s1(lock);
@@ -623,12 +625,6 @@ public:
 //=========================================================================================================================================================	
 #pragma omp parallel sections
 		{
-//			dcBlocker((float*)inputChannelData[0], (float*)inputChannelData[0], numSamples);
-//			dcBlocker((float*)inputChannelData[1], (float*)inputChannelData[1], numSamples);
-//#if JUCE_LINUX
-//			FloatVectorOperations::multiply((float*)inputChannelData[0], 50.0f, numSamples);
-//			FloatVectorOperations::multiply((float*)inputChannelData[1], 50.0f, numSamples);
-//#endif
 			const float *rptr_L = (const float *)inputChannelData[0];
 			ring_buffer_size_t elementsWriteable_L = PaUtil_GetRingBufferWriteAvailable(&ringBufferIn_L);
 			ring_buffer_size_t elementsToWrite_L = rbs_min(elementsWriteable_L, (ring_buffer_size_t)(numSamples));
@@ -639,33 +635,65 @@ public:
 			ring_buffer_size_t elementsToWrite_R = rbs_min(elementsWriteable_R, (ring_buffer_size_t)(numSamples));
 			PaUtil_WriteRingBuffer(&ringBufferIn_R, rptr_R, elementsToWrite_R);
 
-#pragma omp section
-			{
-				float *wptr = (float *)outputChannelData[0];
-				ring_buffer_size_t elementsToPlay = PaUtil_GetRingBufferReadAvailable(&ringBufferOut);
-				ring_buffer_size_t elementsToRead = rbs_min(elementsToPlay, (ring_buffer_size_t)(numSamples));
-				readedSamples = PaUtil_ReadRingBuffer(&ringBufferOut, wptr, elementsToRead);
-			}
-			if (readedSamples < numOfSamples)
-			{
-#pragma omp parallel for shedule(static, 4)
-				for (int i = readedSamples; i < numOfSamples; i++)
-				{
-					outputChannelData[0][i] = 0;
-				}
-			}
+//#pragma omp section
+//			{
+//				float *wptr = (float *)outputChannelData[0];
+//				ring_buffer_size_t elementsToPlay = PaUtil_GetRingBufferReadAvailable(&ringBufferOut);
+//				ring_buffer_size_t elementsToRead = rbs_min(elementsToPlay, (ring_buffer_size_t)(numSamples));
+//				readedSamples = PaUtil_ReadRingBuffer(&ringBufferOut, wptr, elementsToRead);
+//			}
+//			if (readedSamples < numOfSamples)
+//			{
+//#pragma omp parallel for shedule(static, 4)
+//				for (int i = readedSamples; i < numOfSamples; i++)
+//				{
+//					outputChannelData[0][i] = 0;
+//				}
+//			}
 		}
 		
 #pragma omp parallel sections 
 		{
-#pragma omp section
+//#pragma omp section
+//			{
+//				pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
+//				pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
+//			}
+
+			//static std::vector<float> previous_reference_samples(numSamples, 0.0f);
+			//static FxLMSFilter<FX_FILTER_LENGTH, FILTER_LENGTH> fxlms_filter(muValue,
+			//	FX_FILTER_COEFFS, filterSize);
+
+			//for (unsigned long i = 1; i < numSamples; i++) {
+			//	float error_sample = inputChannelData[0][i];
+			//	float reference_sample = inputChannelData[1][i];
+			//	
+			//	float correction_sample = fxlms_filter.lms_step(previous_reference_samples.at(i), error_sample);
+
+			//	previous_reference_samples.at(i) = reference_sample;				
+			//	float fixed_correction_sample = (correction_sample * volume);				
+			//	outputChannelData[0][i] = fixed_correction_sample;				
+			//}
+			
+			
+
+
+			sampleDelayCall += numSamples;
+			if (sampleDelayCall > FRAMES_PER_BUFFER)
 			{
-				pushNextSamplesIntoFifo((float*)inputChannelData[0], 0, numSamples);
-				pushNextSamplesIntoFifo((float*)inputChannelData[1], 1, numSamples);
+				if (sampleCountCall > 0)
+				{
+					for (int n = 0; n < numSamples; n++)
+					{
+						outputChannelData[0][n] = -.2f + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (0.4f)));
+					}
+					sampleCountCall -= numSamples;
+				}
+				else
+				{
+					arm_fir_f32(&fir_instanceANC, (const float*)inputChannelData[1], (float*)outputChannelData[0], numSamples);
+				}
 			}
-			//nlmsFilter.nlms_step((float*)inputChannelData[1], (float*)inputChannelData[0], outputChannelData[0], numSamples);
-				//monoIIR.processSamples((float*)inputChannelData[0], numSamples);
-				//monoIIR.processSamples((float*)inputChannelData[1], numSamples);
 
 			//arm_lms_norm_f32(
 			//	&lmsNorm_instance,			/* LMSNorm instance */
@@ -697,11 +725,14 @@ public:
 				//memcpy(stereoFIR.state->coefficients.begin(), lmsNormCoeff_f32, filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), NLMSFilter.getCoeff(), filterSize * sizeof(float));
 				//memcpy(stereoFIR.state->coefficients.begin(), FbNLMSFilter.getCoeff(), filterSize * sizeof(float));
+				//memcpy(stereoFIR.state->coefficients.begin(), fxlms_filter.fir_filter.get_coefficients().data(), filterSize * sizeof(float));
+				//std::copy(fxlms_filter.fir_filter.get_coefficients().data(), fxlms_filter.fir_filter.get_coefficients().data() + FILTER_LENGTH, stereoFIR.state->coefficients.begin());
 		}
 #pragma omp section
 			{
 				FloatVectorOperations::multiply((float*)outputChannelData[0], volume, numSamples);				
-				monoIIR.processSamples(outputChannelData[0], numSamples);
+				//monoIIR.processSamples(outputChannelData[0], numSamples);
+				FloatVectorOperations::negate(outputChannelData[0], outputChannelData[0], numSamples);
 				FloatVectorOperations::copy((float*)outputChannelData[1], (float*)outputChannelData[0], numSamples);
 			}
 			//=========================================================================================================================================================
@@ -994,6 +1025,7 @@ public:
 	{
 		if (ANC.get() != nullptr)
 		{
+			ScopedLock sl(lock);
 			SNR_Value.setText(String("SNR = ") + String(ANC->getSNR()) + String(" dB"), NotificationType::dontSendNotification);
 			elo = ANC->getCoeffs();
 		}
@@ -1097,6 +1129,8 @@ private:
    #else
     AudioDeviceManager& audioDeviceManager { getSharedAudioDeviceManager (2, 2) };	
    #endif
+
+	CriticalSection lock;
 
 	bool isVisualisingRunning = true;
 

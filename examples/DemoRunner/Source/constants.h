@@ -19,10 +19,10 @@
 
 
 const size_t NR_OF_CHANNELS = 2;
-const long unsigned int FILTER_LENGTH = 128;
+const long unsigned int FILTER_LENGTH = 512;
 const long unsigned int FX_FILTER_LENGTH = 156;
-const float LMS_LEAK_FACTOR = 0.99999f;
-const float LMS_STEP_SIZE = 0.1f;
+const float LMS_LEAK_FACTOR = 0.9999f;
+const float LMS_STEP_SIZE = 0.001f;
 const float SEC_PATH_LMS_STEP_SIZE = 0.01f;
 const float DC_REDUCTION_VALUE = 0.0f;
 const float INPUT_SCALING = 1.0f;

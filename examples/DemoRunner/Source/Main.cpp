@@ -25,7 +25,7 @@
 */
 
 #include "../JuceLibraryCode/JuceHeader.h"
-#include "../examples/Assets/DemoUtilities.h"
+#include "../../../examples/Assets/DemoUtilities.h"
 
 #include "UI/MainComponent.h"
 

@@ -46,8 +46,8 @@
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="JUCE_USE_SIMD=1&#10;__FPU_PRESENT&#10;__CMSIS_GENERIC&#10;JUCE_DEMO_RUNNER=1&#10;JUCE_USE_XSHM=0&#10;JUCE_USE_XINERAMA=0&#10;ARM_MATH_CM4&#10;ARM_MATH_MSB_FIRST&#10;JUCE_DEMO_RUNNER=1&#10;"
                 extraCompilerFlags="-std=gnu++14">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" linuxArchitecture="-march=armv6"/>
-        <CONFIGURATION name="Release" linuxArchitecture="-march=armv6"/>
+        <CONFIGURATION isDebug="1" name="Debug" linuxArchitecture="-march=armv7"/>
+        <CONFIGURATION name="Release" linuxArchitecture="-march=armv7"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_video" path="../../modules"/>

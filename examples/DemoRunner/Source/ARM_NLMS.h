@@ -1012,7 +1012,7 @@ void arm_lms_init_f32(
 		}
 
 		/* Store the result from accumulator into the destination buffer. */
-		*pOut++ = -acc;
+		*pOut++ = acc;
 
 		/* Compute and store error */
 		e = (float)*pRef++ - acc;
@@ -1370,10 +1370,10 @@ void arm_lms_init_f32(
 		}
 		
 		/* Store the result from accumulator into the destination buffer. */
-		*pOut++ = -acc;
+		*pOut++ = acc;
 
 		/* Compute and store error */
-		e = -(float)*pErrIn++;
+		e = (float)*pErrIn++;
 		*pErr++ = e;
 
 		/* Calculation of Weighting factor for updating filter coefficients */
@@ -1667,31 +1667,35 @@ void arm_scale_f32(
 #include <assert.h>
 #include "constants.h"
 
-
 template<int filter_length>
 class FIRFilter {
 public:
 	typedef std::array<float, filter_length> samples_array;
 	typedef std::array<float, filter_length> filter_coeffs_array;
 
-	FIRFilter() : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{filter_length} {}
+	FIRFilter() : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{ filter_length }{}
 
-	FIRFilter(int _filterSize) : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{ _filterSize } {}
+	FIRFilter(filter_coeffs_array coefficients) : _filter_coefficients(coefficients),
+		_samples_buffer{ 0.0 }, filterSize{ filter_length } {
+	}
+	
+	FIRFilter(int filter_size) : _filter_coefficients{ 0.0 },
+		_samples_buffer{ 0.0 }, filterSize{ filter_size } {
+	}
 
-	FIRFilter(int _filterSize, filter_coeffs_array coefficients) : _filter_coefficients(coefficients), filterSize{ _filterSize },
-		_samples_buffer{ 0.0 } {}
-
-	FIRFilter(filter_coeffs_array coefficients) : _filter_coefficients(coefficients), _samples_buffer{ 0.0 } {}
+	FIRFilter(filter_coeffs_array coefficients, int filter_size) : _filter_coefficients(coefficients),
+		_samples_buffer{ 0.0 }, filterSize{ filter_size } {
+	}
 
 	float fir_step(float new_sample) {
 		float new_val = 0;
 		// Shift sample_buffer (FIFO style)
-		for (long unsigned int i = filterSize - 1; i >= 1; --i) {
+		for (long unsigned int i = filter_length - 1; i >= 1; --i) {
 			_samples_buffer[i] = _samples_buffer[i - 1];
 		}
 		_samples_buffer[0] = new_sample;
 		// Multiply and accumulate
-		for (long unsigned int i = 0; i < filterSize; ++i) {
+		for (long unsigned int i = 0; i < filter_length; ++i) {
 			new_val += _samples_buffer[i] * _filter_coefficients[i];
 		}
 		return new_val;
@@ -1710,38 +1714,86 @@ public:
 	}
 
 private:
-	int filterSize;
 	filter_coeffs_array _filter_coefficients;
 	samples_array _samples_buffer;
+	int filterSize;
 };
 
 
+//template<int filter_length>
+//class FIRFilter {
+//public:
+//	typedef std::array<float, filter_length> samples_array;
+//	typedef std::array<float, filter_length> filter_coeffs_array;
+//
+//	FIRFilter() : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{filter_length} {}
+//
+//	FIRFilter(int _filterSize) : _filter_coefficients{ {0.0f} }, _samples_buffer{ {0.0} }, filterSize{ _filterSize } {}
+//
+//	FIRFilter(int _filterSize, filter_coeffs_array coefficients) : _filter_coefficients(coefficients), filterSize{ _filterSize },
+//		_samples_buffer{ 0.0 } {}
+//
+//	FIRFilter(filter_coeffs_array coefficients) : _filter_coefficients(coefficients), _samples_buffer{ 0.0 } {}
+//
+//	float fir_step(float new_sample) {
+//		float new_val = 0;
+//		// Shift sample_buffer (FIFO style)
+//		for (long unsigned int i = filterSize - 1; i >= 1; --i) {
+//			_samples_buffer[i] = _samples_buffer[i - 1];
+//		}
+//		_samples_buffer[0] = new_sample;
+//		// Multiply and accumulate
+//		for (long unsigned int i = 0; i < filterSize; ++i) {
+//			new_val += _samples_buffer[i] * _filter_coefficients[i];
+//		}
+//		return new_val;
+//	}
+//
+//	filter_coeffs_array get_coefficients() {
+//		return _filter_coefficients;
+//	}
+//
+//	void set_coefficients(filter_coeffs_array new_coefficients) {
+//		_filter_coefficients = new_coefficients;
+//	}
+//
+//	void reset_sample_buffer() {
+//		_samples_buffer = { 0 };
+//	}
+//
+//private:
+//	int filterSize;
+//	filter_coeffs_array _filter_coefficients;
+//	samples_array _samples_buffer;
+//};
 
 
-void dc_removal(float *samples_bufferE, float *samples_bufferR, float *out1, float *out2, long unsigned int buffer_length) {
-	static float last_error_sample = 0.0f;
-	static float last_ref_sample = 0.0f;
 
-	static FIRFilter<ANTYALIAS_FILTER_LENGTH> aa_filter_error(ANTYALIAS_FILTER_COEFFS);
-	static FIRFilter<ANTYALIAS_FILTER_LENGTH> aa_filter_ref(ANTYALIAS_FILTER_COEFFS);
 
-	for (unsigned long i = 1; i < buffer_length; i ++) {
-		float error_sample = samples_bufferE[i];
-		float reference_sample = samples_bufferR[i - 1];
-		// error samples filtering
-		float new_err = error_sample + DC_REMOVAL_ALPHA * last_error_sample;
-		float out_err = new_err - last_error_sample;
-		last_error_sample = new_err;
-		out_err = aa_filter_error.fir_step(out_err);
-		out1[i] = out_err;
-		// reference samples filtering
-		float new_ref = reference_sample + DC_REMOVAL_ALPHA * last_ref_sample;
-		float out_ref = new_ref - last_ref_sample;
-		last_ref_sample = out_ref;
-		out_ref = aa_filter_ref.fir_step(out_ref);
-		out2[i - 1] = out_ref;
-	}
-}
+//void dc_removal(float *samples_bufferE, float *samples_bufferR, float *out1, float *out2, long unsigned int buffer_length) {
+//	static float last_error_sample = 0.0f;
+//	static float last_ref_sample = 0.0f;
+//
+//	static FIRFilter<ANTYALIAS_FILTER_LENGTH> aa_filter_error(ANTYALIAS_FILTER_COEFFS);
+//	static FIRFilter<ANTYALIAS_FILTER_LENGTH> aa_filter_ref(ANTYALIAS_FILTER_COEFFS);
+//
+//	for (unsigned long i = 1; i < buffer_length; i ++) {
+//		float error_sample = samples_bufferE[i];
+//		float reference_sample = samples_bufferR[i - 1];
+//		 error samples filtering
+//		float new_err = error_sample + DC_REMOVAL_ALPHA * last_error_sample;
+//		float out_err = new_err - last_error_sample;
+//		last_error_sample = new_err;
+//		out_err = aa_filter_error.fir_step(out_err);
+//		out1[i] = out_err;
+//		 reference samples filtering
+//		float new_ref = reference_sample + DC_REMOVAL_ALPHA * last_ref_sample;
+//		float out_ref = new_ref - last_ref_sample;
+//		last_ref_sample = out_ref;
+//		out_ref = aa_filter_ref.fir_step(out_ref);
+//		out2[i - 1] = out_ref;
+//	}
+//}
 
 template<int filter_length>
 class NLMSFilter {
@@ -2236,3 +2288,99 @@ namespace Adaptive {
 		return &c[0];
 	}
 }
+
+
+
+
+
+
+
+
+template<int filter_length>
+class LMSFilter {
+public:
+
+	typedef std::array<float, filter_length> samples_array;
+	typedef std::array<float, filter_length> filter_coeffs_array;
+	FIRFilter<filter_length> fir_filter;
+
+	LMSFilter(float alpha_val) : _alpha{ alpha_val }, _lms_coefficients{ {0} }, _samples_buffer{ {0} } {
+		fir_filter.set_coefficients(_lms_coefficients);
+	}
+
+	LMSFilter(float alpha_val, int filter_size) : _alpha{ alpha_val }, _lms_coefficients{ {0} }, _samples_buffer{ {0} }, filterSize(filter_size)
+	{
+		fir_filter.set_coefficients(_lms_coefficients);
+	}
+
+	LMSFilter(float alpha_val, filter_coeffs_array initial_filter) : _alpha{ alpha_val },
+		_lms_coefficients{
+				0.0 },
+				_samples_buffer{ {0.0} } {
+		fir_filter.set_coefficients(initial_filter);
+	}
+
+	LMSFilter(float alpha_val, filter_coeffs_array initial_filter, int filter_size) : _alpha{ alpha_val },
+		_lms_coefficients{ 0.0 }, _samples_buffer{ {0.0} }, filterSize(filter_size)
+	{
+		fir_filter.set_coefficients(initial_filter);
+	}
+
+	virtual float lms_step(float x_reference_sample, float error_sample,
+		float unfiltered_x_sample) {
+		// Shift samples buffer
+		for (long int i = filter_length - 1; i >= 1; --i) {
+			_samples_buffer[i] = _samples_buffer[i - 1];
+		}
+		_samples_buffer[0] = x_reference_sample;
+		// Update filter coefficients
+		lms_filter_update(
+			-(_alpha) *
+			(error_sample));
+		// Perform filtering step, to generate new y correction sample
+		return fir_filter.fir_step(unfiltered_x_sample);
+	}
+
+	void lms_filter_update(float update_step) {
+		filter_coeffs_array filter_coeffs = fir_filter.get_coefficients();
+		for (int i = 0; i < filter_length; ++i) {
+			filter_coeffs.at(i) = _lms_leak_factor * filter_coeffs.at(i)
+				+ _samples_buffer.at(i) * update_step;
+		}
+		fir_filter.set_coefficients(filter_coeffs);
+	}
+
+	filter_coeffs_array _lms_coefficients;
+
+private:
+	float _alpha;
+	float _lms_leak_factor = LMS_LEAK_FACTOR;
+	int filterSize;
+	samples_array _samples_buffer;
+};
+
+template<int fx_filter_length, int filter_length>
+class FxLMSFilter : public LMSFilter<filter_length> {
+
+public:
+	typedef std::array<float, fx_filter_length> fx_filter_coeffs_array;
+
+	FxLMSFilter(float alpha_val, const fx_filter_coeffs_array s_filter) :
+		LMSFilter<filter_length>(alpha_val), _s_filter{ s_filter } {};
+
+	FxLMSFilter(float alpha_val, const fx_filter_coeffs_array s_filter, int filter_size) :
+		LMSFilter<filter_length>(alpha_val, filter_size), _s_filter{ s_filter }, filtersize(filter_size) {};
+
+	float lms_step(float x_reference_sample, float error_sample) {
+		float filtered_x_sample = _s_filter.fir_step(x_reference_sample);
+		return LMSFilter<filter_length>::lms_step(filtered_x_sample, error_sample, x_reference_sample);
+	}
+
+	void set_s_filter_coefficient(fx_filter_coeffs_array new_coeffs) {
+		_s_filter.set_coefficients(new_coeffs);
+	}
+
+private:
+	FIRFilter<fx_filter_length> _s_filter;	
+	int filtersize;
+};
